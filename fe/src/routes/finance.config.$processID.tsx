@@ -64,10 +64,10 @@ function FinanceProcessConfigPage() {
     <PageTransition>
       <div className="mx-auto max-w-7xl space-y-8 p-8">
           <nav className="text-sm text-slate-500">
-            <ol className="flex items-center gap-1">
-              <li><Link to="/finance" className="font-medium text-slate-700 transition-colors hover:text-slate-700 hover:font-semibold">Finance</Link></li>
+            <ol className="flex items-center gap-2">
+              <li><Link to="/finance" className="font-medium text-slate-500 transition-colors hover: hover:text-black">Finance</Link></li>
               <li><ChevronRight className="h-4 w-4" /></li>
-              <li><Link to="/finance/config/$processID" params={{ processID }} className="font-semibold text-blue-700 transition-colors hover:text-blue-800 hover:underline">{processID}</Link></li>
+              <li><Link to="/finance/config/$processID" params={{ processID }} className="font-semibold text-blue-600 transition-colors hover:text-blue-900">{processID}</Link></li>
             </ol>
           </nav>
 
