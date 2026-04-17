@@ -1,0 +1,16 @@
+image:
+  repository: ""
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 5174
+
+env: []
+
+ingress:
+  enabled: false
+  className: ""
+  hosts: []
+  tls: []
