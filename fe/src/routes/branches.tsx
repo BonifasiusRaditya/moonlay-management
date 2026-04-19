@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchBranches, createBranch, updateBranch, deleteBranch } from '@/api/branches';
@@ -13,9 +13,10 @@ import { ConfirmationDialog } from '@/components/confirmation_dialog';
 import { PageSkeleton } from '@/components/loading_skeleton';
 import { PageTransition } from '@/components/page_transition';
 import { DataTable, type DataTableColumn, type RowAction } from '@/components/datatable';
-import { useUserStore } from '@/stores/userStore';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { useUserStore } from '@/stores/userStore';
 import { canSeeClientDimension } from '@/utils/permissions';
+import { requireAuthBeforeLoad } from '@/utils/route_guards';
 import { Edit, Trash2 } from 'lucide-react';
 import { z } from 'zod';
 
@@ -529,14 +530,8 @@ function BranchesPage() {
 }
 
 export const Route = createFileRoute('/branches')({
-  beforeLoad: () => {
-    const { token, user } = useUserStore.getState();
-    if (!token || !user) {
-      throw redirect({
-        to: '/login',
-        replace: true,
-      });
-    }
+  beforeLoad: async () => {
+    await requireAuthBeforeLoad();
   },
   component: BranchesPage,
 });

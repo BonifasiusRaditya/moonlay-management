@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"net/http"
+	"os"
 	"strings"
+	"time"
 
 	"digisign-portal/services/app/core-service/models"
 	"digisign-portal/services/app/core-service/usecases"
@@ -40,7 +42,61 @@ func (ctl *AuthController) Login(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
+
+	// Set token as HttpOnly cookie. Use SameSite=None for cross-site requests
+	// and set Secure only in production (requires HTTPS).
+	secure := strings.ToUpper(os.Getenv("APP_ENVIRONMENT")) == "PRODUCTION"
+	cookie := &http.Cookie{
+		Name:     "token",
+		Value:    res.Token,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteNoneMode,
+		MaxAge:   int((24 * time.Hour).Seconds()),
+	}
+	http.SetCookie(c.Response(), cookie)
+
+	// Remove token from response body to avoid duplication on client side
+	res.Token = ""
 	return c.JSON(http.StatusOK, res)
+}
+func (ctl *AuthController) Logout(c echo.Context) error {
+	// Clear cookie by setting MaxAge to -1
+	secure := strings.ToUpper(os.Getenv("APP_ENVIRONMENT")) == "PRODUCTION"
+	cookie := &http.Cookie{
+		Name:     "token",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteNoneMode,
+		MaxAge:   -1,
+	}
+	http.SetCookie(c.Response(), cookie)
+	return c.JSON(http.StatusOK, map[string]string{"message": "Logged out successfully"})
+}
+
+func AuthMiddleware(u *usecases.AuthUsecase) echo.MiddlewareFunc {
+  return func(next echo.HandlerFunc) echo.HandlerFunc {
+    return func(c echo.Context) error {
+      var tokenStr string
+      if cookie, err := c.Cookie("token"); err == nil && cookie.Value != "" {
+        tokenStr = cookie.Value
+      } else {
+        tokenStr = strings.TrimPrefix(c.Request().Header.Get("Authorization"), "Bearer ")
+      }
+      if tokenStr == "" {
+        return echo.NewHTTPError(http.StatusUnauthorized, "missing token")
+      }
+      claims, err := u.ParseToken(tokenStr)
+      if err != nil {
+        return echo.NewHTTPError(http.StatusUnauthorized, "invalid token")
+      }
+      c.Set("user_id", claims.UserID)
+      return next(c)
+    }
+  }
 }
 
 // Register godoc

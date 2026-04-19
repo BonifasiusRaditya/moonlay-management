@@ -54,6 +54,9 @@ export async function login(credentials: LoginInput): Promise<LoginResponse> {
 }
 
 export async function logout() {
-  localStorage.removeItem('token');
+  try {
+    await apiClient.post('/auth/logout');
+  } catch (e) {
+  }
 }
 

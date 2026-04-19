@@ -32,7 +32,7 @@ declare module '@tanstack/react-router' {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} context={{ auth: { isAuthenticated: !!localStorage.getItem('token') } }} />
+      <RouterProvider router={router} context={{ auth: { isAuthenticated: false } }} />
     </QueryClientProvider>
   </React.StrictMode>,
 );

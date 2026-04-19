@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { useUserStore } from '@/stores/userStore';
 
 // Create axios instance with base config
 export const apiClient = axios.create({
@@ -6,25 +7,17 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-});
-
-// Add interceptors for auth, error handling, etc.
-apiClient.interceptors.request.use((config) => {
-  // Try to get token from store first, fallback to localStorage
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  withCredentials: true, 
 });
 
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized - clear token and redirect to login
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      useUserStore.getState().clearUser();
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

@@ -1,4 +1,4 @@
-import { Link, createFileRoute, redirect } from '@tanstack/react-router';
+import { Link, createFileRoute } from '@tanstack/react-router';
 import {
   ArrowRight,
   Building2,
@@ -6,7 +6,6 @@ import {
   ChevronLeft,
   CircleHelp,
   Info,
-  Settings,
   UserPlus,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -14,7 +13,7 @@ import { z } from 'zod';
 import { ConfirmationDialog } from '@/components/confirmation_dialog';
 import { PageTransition } from '@/components/page_transition';
 import { useNotificationStore } from '@/stores/notificationStore';
-import { useUserStore } from '@/stores/userStore';
+import { requireAuthBeforeLoad } from '@/utils/route_guards';
 
 const roleOptions = [
   'Senior Solutions Architect',
@@ -53,14 +52,8 @@ const defaultFormData: OnboardingFormData = {
 };
 
 export const Route = createFileRoute('/hr/create/onboarding')({
-  beforeLoad: () => {
-    const { token, user } = useUserStore.getState();
-    if (!token || !user) {
-      throw redirect({
-        to: '/login',
-        replace: true,
-      });
-    }
+  beforeLoad: async () => {
+    await requireAuthBeforeLoad();
   },
   component: HrOnboardingCreatePage,
 });

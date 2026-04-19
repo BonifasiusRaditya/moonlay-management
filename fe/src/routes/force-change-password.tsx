@@ -7,17 +7,18 @@ import { Card } from '@/components/card';
 import { PageTransition } from '@/components/page_transition';
 import { useUserStore } from '@/stores/userStore';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { requireAuthBeforeLoad } from '@/utils/route_guards';
 
 function ForceChangePasswordPage() {
   const navigate = useNavigate();
   const addNotification = useNotificationStore((state) => state.addNotification);
-  const { user, token, setUser } = useUserStore();
+  const { user, setUser } = useUserStore();
 
   useEffect(() => {
-    if (!token || !user) {
+    if (!user) {
       navigate({ to: '/login', replace: true });
     }
-  }, [token, user, navigate]);
+  }, [user, navigate]);
 
   const [formData, setFormData] = useState({
     current_password: '',
@@ -76,7 +77,7 @@ function ForceChangePasswordPage() {
     mutation.mutate();
   };
 
-  if (!user || !token) {
+  if (!user) {
     return null;
   }
 
@@ -150,10 +151,10 @@ function ForceChangePasswordPage() {
 }
 
 export const Route = createFileRoute('/force-change-password')({
-  beforeLoad: () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw redirect({ to: '/login' });
+  beforeLoad: async () => {
+    const user = await requireAuthBeforeLoad();
+    if (!user.must_change_password) {
+      throw redirect({ to: '/dashboard', replace: true });
     }
   },
   component: ForceChangePasswordPage,

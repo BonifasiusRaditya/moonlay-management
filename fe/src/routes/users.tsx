@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchUsers, createUser, updateUser, deleteUser, type CreateUserResult } from '@/api/users';
@@ -17,6 +17,7 @@ import type { User } from '@/api/users';
 import { createUserSchema, updateUserSchema } from '@/api/users';
 import { generateRandomPassword } from '@/utils/password';
 import { canSeeClientDimension } from '@/utils/permissions';
+import { requireAuthBeforeLoad } from '@/utils/route_guards';
 import { DataTable, type DataTableColumn, type RowAction } from '@/components/datatable';
 import { Edit, Trash2 } from 'lucide-react';
 
@@ -898,16 +899,8 @@ function UsersPage() {
 }
 
 export const Route = createFileRoute('/users')({
-  beforeLoad: ({ location }) => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw redirect({
-        to: '/login',
-        search: {
-          redirect: location.href,
-        },
-      });
-    }
+  beforeLoad: async ({ location }) => {
+    await requireAuthBeforeLoad(location.href);
   },
   component: UsersPage,
 });

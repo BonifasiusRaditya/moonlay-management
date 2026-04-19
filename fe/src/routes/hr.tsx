@@ -1,4 +1,4 @@
-import { Link, Outlet, createFileRoute, redirect, useRouterState } from '@tanstack/react-router';
+import { Link, Outlet, createFileRoute, useRouterState } from '@tanstack/react-router';
 import {
   ChevronRight,
   CircleEllipsis,
@@ -6,7 +6,7 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { PageTransition } from '@/components/page_transition';
-import { useUserStore } from '@/stores/userStore';
+import { requireAuthBeforeLoad } from '@/utils/route_guards';
 
 const HR_AUTOMATIONS = [
   {
@@ -66,14 +66,8 @@ const CANDIDATE_ROWS = [
 ];
 
 export const Route = createFileRoute('/hr')({
-  beforeLoad: () => {
-    const { token, user } = useUserStore.getState();
-    if (!token || !user) {
-      throw redirect({
-        to: '/login',
-        replace: true,
-      });
-    }
+  beforeLoad: async () => {
+    await requireAuthBeforeLoad();
   },
   component: RouteComponent,
 });

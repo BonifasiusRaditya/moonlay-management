@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import {
   CheckCircle2,
   ChevronRight,
@@ -13,7 +13,7 @@ import { useMemo, useState } from 'react';
 import { ConfirmationDialog } from '@/components/confirmation_dialog';
 import { PageTransition } from '@/components/page_transition';
 import { useNotificationStore } from '@/stores/notificationStore';
-import { useUserStore } from '@/stores/userStore';
+import { requireAuthBeforeLoad } from '@/utils/route_guards';
 
 const PROCESS_TITLES: Record<string, string> = {
   'hiring-process': 'Hiring Process',
@@ -258,14 +258,8 @@ function HrConfigPage() {
 }
 
 export const Route = createFileRoute('/hr/config/$processID')({
-  beforeLoad: () => {
-    const { token, user } = useUserStore.getState();
-    if (!token || !user) {
-      throw redirect({
-        to: '/login',
-        replace: true,
-      });
-    }
+  beforeLoad: async () => {
+    await requireAuthBeforeLoad();
   },
   component: HrConfigPage,
 });

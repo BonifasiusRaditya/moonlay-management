@@ -1,4 +1,4 @@
-import { Link, createFileRoute, redirect } from '@tanstack/react-router';
+import { Link, createFileRoute } from '@tanstack/react-router';
 import {
   CheckCircle2,
   ChevronRight,
@@ -13,7 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { PageTransition } from '@/components/page_transition';
-import { useUserStore } from '@/stores/userStore';
+import { requireAuthBeforeLoad } from '@/utils/route_guards';
 
 const PROCESS_NAME_MAP: Record<string, string> = {
   'invoice-generation': 'Invoice Generation Configuration',
@@ -231,14 +231,8 @@ function FinanceProcessConfigPage() {
 }
 
 export const Route = createFileRoute('/finance/config/$processID')({
-  beforeLoad: () => {
-    const { token, user } = useUserStore.getState();
-    if (!token || !user) {
-      throw redirect({
-        to: '/login',
-        replace: true,
-      });
-    }
+  beforeLoad: async () => {
+    await requireAuthBeforeLoad();
   },
   component: FinanceProcessConfigPage,
 });

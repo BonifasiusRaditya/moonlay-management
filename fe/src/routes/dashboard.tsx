@@ -1,6 +1,6 @@
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { PageTransition } from '@/components/page_transition';
-import { useUserStore } from '@/stores/userStore';
+import { requireAuthBeforeLoad } from '@/utils/route_guards';
 import {
   ArrowDown,
   CheckCircle2,
@@ -239,14 +239,8 @@ function DashboardPage() {
 }
 
 export const Route = createFileRoute('/dashboard')({
-  beforeLoad: () => {
-    const { token, user } = useUserStore.getState();
-    if (!token || !user) {
-      throw redirect({
-        to: '/login',
-        replace: true,
-      });
-    }
+  beforeLoad: async () => {
+    await requireAuthBeforeLoad();
   },
   component: DashboardPage,
 });

@@ -7,24 +7,32 @@ import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { useUserStore } from '@/stores/userStore';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { ensureAuthenticatedUser } from '@/utils/auth-session';
 import xerbaLogo from '@/assets/xerba_seamly_logo.png';
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { user, token, setUser, setToken } = useUserStore();
+  const { user, setUser } = useUserStore();
   const addNotification = useNotificationStore((state) => state.addNotification);
   
   // Redirect if already logged in
   useEffect(() => {
-    if (token && user) {
-      if (user.must_change_password) {
+    const verifySession = async () => {
+      const sessionUser = user ?? await ensureAuthenticatedUser();
+      if (!sessionUser) {
+        return;
+      }
+
+      if (sessionUser.must_change_password) {
         navigate({ to: '/force-change-password', replace: true });
       } else {
         navigate({ to: '/dashboard', replace: true });
       }
-    }
-  }, [token, user, navigate]);
-  
+    };
+
+    verifySession();
+  }, [user, navigate]);
+
   const [formData, setFormData] = useState<LoginInput>({
     email: '',
     password: '',
@@ -36,9 +44,6 @@ function LoginPage() {
     onSuccess: (data) => {
       if (data.user) {
         setUser(data.user);
-      }
-      if (data.token) {
-        setToken(data.token);
       }
       addNotification({
         type: 'success',

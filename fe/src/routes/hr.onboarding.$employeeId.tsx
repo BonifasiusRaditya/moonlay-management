@@ -1,4 +1,4 @@
-import { Link, createFileRoute, redirect } from '@tanstack/react-router';
+import { Link, createFileRoute } from '@tanstack/react-router';
 import {
   Check,
   CheckCircle2,
@@ -15,7 +15,7 @@ import { useMemo, useState } from 'react';
 import { ConfirmationDialog } from '@/components/confirmation_dialog';
 import { PageTransition } from '@/components/page_transition';
 import { useNotificationStore } from '@/stores/notificationStore';
-import { useUserStore } from '@/stores/userStore';
+import { requireAuthBeforeLoad } from '@/utils/route_guards';
 
 interface EmployeeDetail {
   name: string;
@@ -95,14 +95,8 @@ const OFFBOARDING_ITEMS = [
 ];
 
 export const Route = createFileRoute('/hr/onboarding/$employeeId')({
-  beforeLoad: () => {
-    const { token, user } = useUserStore.getState();
-    if (!token || !user) {
-      throw redirect({
-        to: '/login',
-        replace: true,
-      });
-    }
+  beforeLoad: async () => {
+    await requireAuthBeforeLoad();
   },
   component: EmployeeProcessDetailPage,
 });
