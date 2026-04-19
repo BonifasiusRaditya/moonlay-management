@@ -14,7 +14,7 @@ import {
 import { useMemo, useState } from 'react';
 import { ConfirmationDialog } from '@/components/confirmation_dialog';
 import { PageTransition } from '@/components/page_transition';
-import { useNotificationStore } from '@/stores/notificationStore';
+import { useNotificationStore } from '@/Session/notificationSession';
 import { requireAuthBeforeLoad } from '@/utils/route_guards';
 
 interface EmployeeDetail {

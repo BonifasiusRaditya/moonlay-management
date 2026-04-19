@@ -5,8 +5,8 @@ import { changeUserPassword } from '@/api/users';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { PageTransition } from '@/components/page_transition';
-import { useUserStore } from '@/stores/userStore';
-import { useNotificationStore } from '@/stores/notificationStore';
+import { useUserStore } from '@/Session/userSession';
+import { useNotificationStore } from '@/Session/notificationSession';
 import { requireAuthBeforeLoad } from '@/utils/route_guards';
 
 function ForceChangePasswordPage() {

@@ -1,7 +1,7 @@
 import { useNavigate } from '@tanstack/react-router';
 import { LogOut } from 'lucide-react';
 import { Button } from '@/components/button';
-import { useUserStore } from '@/stores/userStore';
+import { useUserStore } from '@/Session/userSession';
 import { logout } from '@/api/auth';
 
 interface NavbarProps {

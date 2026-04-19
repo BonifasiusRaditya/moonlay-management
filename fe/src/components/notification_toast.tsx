@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNotificationStore } from '@/stores/notificationStore';
+import { useNotificationStore } from '@/Session/notificationSession';
 import { cn } from '@/utils/cn';
 
 export function NotificationToast() {

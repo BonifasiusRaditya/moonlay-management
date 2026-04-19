@@ -15,7 +15,7 @@ import {
   getVisibleColumns,
   sortData,
 } from './datatable-utils';
-import { useNotificationStore } from '@/stores/notificationStore';
+import { useNotificationStore } from '@/Session/notificationSession';
 import type { DataTableProps } from './datatable-types';
 
 export function DataTable<T = any>({

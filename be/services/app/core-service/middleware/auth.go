@@ -4,26 +4,31 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 )
 
 type AuthMiddleware struct {
-	secret string
+	secret        string
+	serverStarted time.Time
 }
 
 func NewAuthMiddleware(secret string) *AuthMiddleware {
 	if strings.TrimSpace(secret) == "" {
 		secret = "change-this-secret"
 	}
-	return &AuthMiddleware{secret: secret}
+	return &AuthMiddleware{
+		secret:        secret,
+		serverStarted: time.Now().UTC(),
+	}
 }
 
 func (m *AuthMiddleware) RequireAuth() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			token, err := bearerToken(c.Request().Header.Get("Authorization"))
+			token, err := tokenFromRequest(c)
 			if err != nil {
 				return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 			}
@@ -49,7 +54,7 @@ func (m *AuthMiddleware) RequireAnyRole(roles ...string) echo.MiddlewareFunc {
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			token, err := bearerToken(c.Request().Header.Get("Authorization"))
+			token, err := tokenFromRequest(c)
 			if err != nil {
 				return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 			}
@@ -69,6 +74,17 @@ func (m *AuthMiddleware) RequireAnyRole(roles ...string) echo.MiddlewareFunc {
 			return next(c)
 		}
 	}
+}
+
+func tokenFromRequest(c echo.Context) (string, error) {
+	if cookie, err := c.Cookie("token"); err == nil {
+		cookieToken := strings.TrimSpace(cookie.Value)
+		if cookieToken != "" {
+			return cookieToken, nil
+		}
+	}
+
+	return bearerToken(c.Request().Header.Get("Authorization"))
 }
 
 func bearerToken(authHeader string) (string, error) {
@@ -104,5 +120,12 @@ func (m *AuthMiddleware) parseToken(token string) (*tokenClaims, error) {
 	if err != nil || !parsed.Valid {
 		return nil, errors.New("invalid token")
 	}
+
+	// Invalidate tokens issued before the current backend process started.
+	// This forces a fresh login whenever the backend is restarted.
+	if claims.IssuedAt == nil || claims.IssuedAt.Time.Before(m.serverStarted) {
+		return nil, errors.New("invalid token")
+	}
+
 	return claims, nil
 }

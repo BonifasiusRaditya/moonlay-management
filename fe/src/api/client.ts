@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useUserStore } from '@/stores/userStore';
+import { useUserStore } from '@/Session/userSession';
 
 // Create axios instance with base config
 export const apiClient = axios.create({

@@ -43,16 +43,21 @@ func (ctl *AuthController) Login(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	}
 
-	// Set token as HttpOnly cookie. Use SameSite=None for cross-site requests
-	// and set Secure only in production (requires HTTPS).
+	// Set token as HttpOnly cookie.
+	// In production use SameSite=None + Secure (cross-site HTTPS).
+	// In local/dev use SameSite=Lax so cookie is accepted over HTTP localhost.
 	secure := strings.ToUpper(os.Getenv("APP_ENVIRONMENT")) == "PRODUCTION"
+	sameSite := http.SameSiteLaxMode
+	if secure {
+		sameSite = http.SameSiteNoneMode
+	}
 	cookie := &http.Cookie{
 		Name:     "token",
 		Value:    res.Token,
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   secure,
-		SameSite: http.SameSiteNoneMode,
+		SameSite: sameSite,
 		MaxAge:   int((24 * time.Hour).Seconds()),
 	}
 	http.SetCookie(c.Response(), cookie)
@@ -64,13 +69,17 @@ func (ctl *AuthController) Login(c echo.Context) error {
 func (ctl *AuthController) Logout(c echo.Context) error {
 	// Clear cookie by setting MaxAge to -1
 	secure := strings.ToUpper(os.Getenv("APP_ENVIRONMENT")) == "PRODUCTION"
+	sameSite := http.SameSiteLaxMode
+	if secure {
+		sameSite = http.SameSiteNoneMode
+	}
 	cookie := &http.Cookie{
 		Name:     "token",
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   secure,
-		SameSite: http.SameSiteNoneMode,
+		SameSite: sameSite,
 		MaxAge:   -1,
 	}
 	http.SetCookie(c.Response(), cookie)

@@ -5,9 +5,9 @@ import { login } from '@/api/auth';
 import { loginSchema, type LoginInput } from '@/schemas/auth';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
-import { useUserStore } from '@/stores/userStore';
-import { useNotificationStore } from '@/stores/notificationStore';
-import { ensureAuthenticatedUser } from '@/utils/auth-session';
+import { useUserStore } from '@/Session/userSession';
+import { useNotificationStore } from '@/Session/notificationSession';
+import { ensureAuthenticatedUser } from '@/Session/userSession';
 import xerbaLogo from '@/assets/xerba_seamly_logo.png';
 
 function LoginPage() {

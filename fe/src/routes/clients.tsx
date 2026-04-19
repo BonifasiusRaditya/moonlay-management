@@ -12,7 +12,7 @@ import { ConfirmationDialog } from '@/components/confirmation_dialog';
 import { PageSkeleton } from '@/components/loading_skeleton';
 import { PageTransition } from '@/components/page_transition';
 import { requirePermissionBeforeLoad } from '@/utils/route_guards';
-import { useNotificationStore } from '@/stores/notificationStore';
+import { useNotificationStore } from '@/Session/notificationSession';
 import { z } from 'zod';
 import { generateRandomPassword } from '@/utils/password';
 import { DataTable, type DataTableColumn, type RowAction } from '@/components/datatable';

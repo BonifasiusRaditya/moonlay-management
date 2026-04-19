@@ -1,6 +1,6 @@
 import { redirect } from '@tanstack/react-router';
 import { hasPermission, type Permission } from './permissions';
-import { ensureAuthenticatedUser } from './auth-session';
+import { ensureAuthenticatedUser } from '@/Session/userSession';
 
 export async function requireAuthBeforeLoad(redirectHref?: string) {
   const user = await ensureAuthenticatedUser();
@@ -19,10 +19,6 @@ export async function requireAuthBeforeLoad(redirectHref?: string) {
   return user;
 }
 
-/**
- * Creates a beforeLoad guard enforcing authentication and a specific permission.
- * Redirects unauthenticated users to /login and unauthorized users to /dashboard.
- */
 export function requirePermissionBeforeLoad(permission: Permission) {
   return async () => {
     const user = await requireAuthBeforeLoad();

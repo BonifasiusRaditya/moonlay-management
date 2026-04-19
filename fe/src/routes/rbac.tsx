@@ -17,7 +17,7 @@ import { Modal } from '@/components/modal';
 import { ConfirmationDialog } from '@/components/confirmation_dialog';
 import { PageSkeleton } from '@/components/loading_skeleton';
 import { PageTransition } from '@/components/page_transition';
-import { useNotificationStore } from '@/stores/notificationStore';
+import { useNotificationStore } from '@/Session/notificationSession';
 import { ShieldCheck, ShieldOff, Plus, Trash, Edit, RefreshCw } from 'lucide-react';
 import { z } from 'zod';
 

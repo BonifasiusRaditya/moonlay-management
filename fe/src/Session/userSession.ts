@@ -1,6 +1,20 @@
-import { apiClient } from '@/api/client';
-import { useUserStore } from '@/stores/userStore';
+import { create } from 'zustand';
 import type { AuthUser } from '@/types/auth_user';
+import { apiClient } from '@/api/client';
+
+interface UserStore {
+  user: AuthUser | null;
+  setUser: (user: AuthUser | null) => void;
+  clearUser: () => void;
+}
+
+export const useUserStore = create<UserStore>((set) => ({
+  user: null,
+  setUser: (user) => set({ user }),
+  clearUser: () => {
+    set({ user: null });
+  },
+}));
 
 type MeResponse = {
   user?: AuthUser;

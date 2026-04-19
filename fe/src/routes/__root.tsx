@@ -2,7 +2,7 @@ import { createRootRoute, Outlet, useRouterState, useNavigate } from '@tanstack/
 import { useEffect } from 'react';
 import { NotificationToast } from '@/components/notification_toast';
 import { SidebarLayout } from '@/components/sidebar_layout';
-import { useUserStore } from '@/stores/userStore';
+import { useUserStore } from '@/Session/userSession';
 import { useAutoLogoutOnIdle } from '@/hooks/userAutoLogoutIdle';
 
 export const Route = createRootRoute({
