@@ -54,11 +54,10 @@ func (m *Main) Init() (err error) {
 	configureErrorHandler(e)
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-	// Allow CORS with credentials for the frontend (needed for HttpOnly cookies)
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins:     []string{"http://localhost:5173"},
-		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
-		AllowHeaders:     []string{"Authorization", "Content-Type"},
+		AllowOrigins: []string{"http://localhost:5173"},
+		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
+		AllowHeaders: []string{"Authorization", "Content-Type"},
 		AllowCredentials: true,
 	}))
 	e.Use(middleware.RequestID())

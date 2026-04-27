@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const httpsEnabled = (env.VITE_HTTPS_ENABLED || 'false').toLowerCase() === 'true';
 
-  let httpsConfig: false | { key: Buffer; cert: Buffer } = false;
+  let httpsConfig: any = false;
 
   if (httpsEnabled) {
     const keyPath = env.VITE_HTTPS_KEY_PATH;
@@ -45,11 +45,11 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      host: env.VITE_HOST || '0.0.0.0',
+      host: env.VITE_HOST || 'localhost',
       https: httpsConfig,
     },
     preview: {
-      host: env.VITE_HOST || '0.0.0.0',
+      host: env.VITE_HOST || 'localhost',
       https: httpsConfig,
     },
   };
