@@ -24,7 +24,6 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
   const router = useRouterState();
   const currentPath = router.location.pathname;
   const isDashboard = currentPath === '/dashboard' || currentPath.startsWith('/dashboard/');
-  const isHr = currentPath === '/hr' || currentPath.startsWith('/hr/');
   const isFinance = currentPath === '/finance' || currentPath.startsWith('/finance/');
   const [adminExpanded, setAdminExpanded] = useState(true);
 
@@ -90,9 +89,9 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
           </Link>
 
           <Link
-            to="/hr"
+            to="/finance"
             className={`${navItemBase} ${
-              isHr
+              isFinance
                 ? 'scale-[0.98] bg-white font-bold text-blue-900 shadow-sm'
                 : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900'
             }`}

@@ -9,48 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as UsersRouteImport } from './routes/users'
-import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as RbacRouteImport } from './routes/rbac'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as HrRouteImport } from './routes/hr'
 import { Route as ForceChangePasswordRouteImport } from './routes/force-change-password'
 import { Route as FinanceRouteImport } from './routes/finance'
-import { Route as EmployeesRouteImport } from './routes/employees'
 import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as ClientsRouteImport } from './routes/clients'
-import { Route as BranchesRouteImport } from './routes/branches'
-import { Route as AuditLogsRouteImport } from './routes/audit-logs'
-import { Route as ApiKeysRouteImport } from './routes/api-keys'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as HrOnboardingEmployeeIdRouteImport } from './routes/hr.onboarding.$employeeId'
-import { Route as HrCreateOnboardingRouteImport } from './routes/hr.create.onboarding'
-import { Route as HrConfigProcessIDRouteImport } from './routes/hr.config.$processID'
-import { Route as FinanceConfigProcessIDRouteImport } from './routes/finance.config.$processID'
 
-const UsersRoute = UsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RbacRoute = RbacRouteImport.update({
-  id: '/rbac',
-  path: '/rbac',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HrRoute = HrRouteImport.update({
-  id: '/hr',
-  path: '/hr',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForceChangePasswordRoute = ForceChangePasswordRouteImport.update({
@@ -63,34 +30,9 @@ const FinanceRoute = FinanceRouteImport.update({
   path: '/finance',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EmployeesRoute = EmployeesRouteImport.update({
-  id: '/employees',
-  path: '/employees',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ClientsRoute = ClientsRouteImport.update({
-  id: '/clients',
-  path: '/clients',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BranchesRoute = BranchesRouteImport.update({
-  id: '/branches',
-  path: '/branches',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuditLogsRoute = AuditLogsRouteImport.update({
-  id: '/audit-logs',
-  path: '/audit-logs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiKeysRoute = ApiKeysRouteImport.update({
-  id: '/api-keys',
-  path: '/api-keys',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -98,203 +40,63 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const HrOnboardingEmployeeIdRoute = HrOnboardingEmployeeIdRouteImport.update({
-  id: '/onboarding/$employeeId',
-  path: '/onboarding/$employeeId',
-  getParentRoute: () => HrRoute,
-} as any)
-const HrCreateOnboardingRoute = HrCreateOnboardingRouteImport.update({
-  id: '/create/onboarding',
-  path: '/create/onboarding',
-  getParentRoute: () => HrRoute,
-} as any)
-const HrConfigProcessIDRoute = HrConfigProcessIDRouteImport.update({
-  id: '/config/$processID',
-  path: '/config/$processID',
-  getParentRoute: () => HrRoute,
-} as any)
-const FinanceConfigProcessIDRoute = FinanceConfigProcessIDRouteImport.update({
-  id: '/config/$processID',
-  path: '/config/$processID',
-  getParentRoute: () => FinanceRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/api-keys': typeof ApiKeysRoute
-  '/audit-logs': typeof AuditLogsRoute
-  '/branches': typeof BranchesRoute
-  '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
-  '/employees': typeof EmployeesRoute
-  '/finance': typeof FinanceRouteWithChildren
+  '/finance': typeof FinanceRoute
   '/force-change-password': typeof ForceChangePasswordRoute
-  '/hr': typeof HrRouteWithChildren
   '/login': typeof LoginRoute
-  '/rbac': typeof RbacRoute
-  '/reports': typeof ReportsRoute
-  '/users': typeof UsersRoute
-  '/finance/config/$processID': typeof FinanceConfigProcessIDRoute
-  '/hr/config/$processID': typeof HrConfigProcessIDRoute
-  '/hr/create/onboarding': typeof HrCreateOnboardingRoute
-  '/hr/onboarding/$employeeId': typeof HrOnboardingEmployeeIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/api-keys': typeof ApiKeysRoute
-  '/audit-logs': typeof AuditLogsRoute
-  '/branches': typeof BranchesRoute
-  '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
-  '/employees': typeof EmployeesRoute
-  '/finance': typeof FinanceRouteWithChildren
+  '/finance': typeof FinanceRoute
   '/force-change-password': typeof ForceChangePasswordRoute
-  '/hr': typeof HrRouteWithChildren
   '/login': typeof LoginRoute
-  '/rbac': typeof RbacRoute
-  '/reports': typeof ReportsRoute
-  '/users': typeof UsersRoute
-  '/finance/config/$processID': typeof FinanceConfigProcessIDRoute
-  '/hr/config/$processID': typeof HrConfigProcessIDRoute
-  '/hr/create/onboarding': typeof HrCreateOnboardingRoute
-  '/hr/onboarding/$employeeId': typeof HrOnboardingEmployeeIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/api-keys': typeof ApiKeysRoute
-  '/audit-logs': typeof AuditLogsRoute
-  '/branches': typeof BranchesRoute
-  '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
-  '/employees': typeof EmployeesRoute
-  '/finance': typeof FinanceRouteWithChildren
+  '/finance': typeof FinanceRoute
   '/force-change-password': typeof ForceChangePasswordRoute
-  '/hr': typeof HrRouteWithChildren
   '/login': typeof LoginRoute
-  '/rbac': typeof RbacRoute
-  '/reports': typeof ReportsRoute
-  '/users': typeof UsersRoute
-  '/finance/config/$processID': typeof FinanceConfigProcessIDRoute
-  '/hr/config/$processID': typeof HrConfigProcessIDRoute
-  '/hr/create/onboarding': typeof HrCreateOnboardingRoute
-  '/hr/onboarding/$employeeId': typeof HrOnboardingEmployeeIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/api-keys'
-    | '/audit-logs'
-    | '/branches'
-    | '/clients'
     | '/dashboard'
-    | '/employees'
     | '/finance'
     | '/force-change-password'
-    | '/hr'
     | '/login'
-    | '/rbac'
-    | '/reports'
-    | '/users'
-    | '/finance/config/$processID'
-    | '/hr/config/$processID'
-    | '/hr/create/onboarding'
-    | '/hr/onboarding/$employeeId'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/api-keys'
-    | '/audit-logs'
-    | '/branches'
-    | '/clients'
-    | '/dashboard'
-    | '/employees'
-    | '/finance'
-    | '/force-change-password'
-    | '/hr'
-    | '/login'
-    | '/rbac'
-    | '/reports'
-    | '/users'
-    | '/finance/config/$processID'
-    | '/hr/config/$processID'
-    | '/hr/create/onboarding'
-    | '/hr/onboarding/$employeeId'
+  to: '/' | '/dashboard' | '/finance' | '/force-change-password' | '/login'
   id:
     | '__root__'
     | '/'
-    | '/api-keys'
-    | '/audit-logs'
-    | '/branches'
-    | '/clients'
     | '/dashboard'
-    | '/employees'
     | '/finance'
     | '/force-change-password'
-    | '/hr'
     | '/login'
-    | '/rbac'
-    | '/reports'
-    | '/users'
-    | '/finance/config/$processID'
-    | '/hr/config/$processID'
-    | '/hr/create/onboarding'
-    | '/hr/onboarding/$employeeId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ApiKeysRoute: typeof ApiKeysRoute
-  AuditLogsRoute: typeof AuditLogsRoute
-  BranchesRoute: typeof BranchesRoute
-  ClientsRoute: typeof ClientsRoute
   DashboardRoute: typeof DashboardRoute
-  EmployeesRoute: typeof EmployeesRoute
-  FinanceRoute: typeof FinanceRouteWithChildren
+  FinanceRoute: typeof FinanceRoute
   ForceChangePasswordRoute: typeof ForceChangePasswordRoute
-  HrRoute: typeof HrRouteWithChildren
   LoginRoute: typeof LoginRoute
-  RbacRoute: typeof RbacRoute
-  ReportsRoute: typeof ReportsRoute
-  UsersRoute: typeof UsersRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/users': {
-      id: '/users'
-      path: '/users'
-      fullPath: '/users'
-      preLoaderRoute: typeof UsersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/rbac': {
-      id: '/rbac'
-      path: '/rbac'
-      fullPath: '/rbac'
-      preLoaderRoute: typeof RbacRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/hr': {
-      id: '/hr'
-      path: '/hr'
-      fullPath: '/hr'
-      preLoaderRoute: typeof HrRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/force-change-password': {
@@ -311,46 +113,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FinanceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/employees': {
-      id: '/employees'
-      path: '/employees'
-      fullPath: '/employees'
-      preLoaderRoute: typeof EmployeesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/clients': {
-      id: '/clients'
-      path: '/clients'
-      fullPath: '/clients'
-      preLoaderRoute: typeof ClientsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/branches': {
-      id: '/branches'
-      path: '/branches'
-      fullPath: '/branches'
-      preLoaderRoute: typeof BranchesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/audit-logs': {
-      id: '/audit-logs'
-      path: '/audit-logs'
-      fullPath: '/audit-logs'
-      preLoaderRoute: typeof AuditLogsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api-keys': {
-      id: '/api-keys'
-      path: '/api-keys'
-      fullPath: '/api-keys'
-      preLoaderRoute: typeof ApiKeysRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -360,77 +127,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/hr/onboarding/$employeeId': {
-      id: '/hr/onboarding/$employeeId'
-      path: '/onboarding/$employeeId'
-      fullPath: '/hr/onboarding/$employeeId'
-      preLoaderRoute: typeof HrOnboardingEmployeeIdRouteImport
-      parentRoute: typeof HrRoute
-    }
-    '/hr/create/onboarding': {
-      id: '/hr/create/onboarding'
-      path: '/create/onboarding'
-      fullPath: '/hr/create/onboarding'
-      preLoaderRoute: typeof HrCreateOnboardingRouteImport
-      parentRoute: typeof HrRoute
-    }
-    '/hr/config/$processID': {
-      id: '/hr/config/$processID'
-      path: '/config/$processID'
-      fullPath: '/hr/config/$processID'
-      preLoaderRoute: typeof HrConfigProcessIDRouteImport
-      parentRoute: typeof HrRoute
-    }
-    '/finance/config/$processID': {
-      id: '/finance/config/$processID'
-      path: '/config/$processID'
-      fullPath: '/finance/config/$processID'
-      preLoaderRoute: typeof FinanceConfigProcessIDRouteImport
-      parentRoute: typeof FinanceRoute
-    }
   }
 }
 
-interface FinanceRouteChildren {
-  FinanceConfigProcessIDRoute: typeof FinanceConfigProcessIDRoute
-}
-
-const FinanceRouteChildren: FinanceRouteChildren = {
-  FinanceConfigProcessIDRoute: FinanceConfigProcessIDRoute,
-}
-
-const FinanceRouteWithChildren =
-  FinanceRoute._addFileChildren(FinanceRouteChildren)
-
-interface HrRouteChildren {
-  HrConfigProcessIDRoute: typeof HrConfigProcessIDRoute
-  HrCreateOnboardingRoute: typeof HrCreateOnboardingRoute
-  HrOnboardingEmployeeIdRoute: typeof HrOnboardingEmployeeIdRoute
-}
-
-const HrRouteChildren: HrRouteChildren = {
-  HrConfigProcessIDRoute: HrConfigProcessIDRoute,
-  HrCreateOnboardingRoute: HrCreateOnboardingRoute,
-  HrOnboardingEmployeeIdRoute: HrOnboardingEmployeeIdRoute,
-}
-
-const HrRouteWithChildren = HrRoute._addFileChildren(HrRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ApiKeysRoute: ApiKeysRoute,
-  AuditLogsRoute: AuditLogsRoute,
-  BranchesRoute: BranchesRoute,
-  ClientsRoute: ClientsRoute,
   DashboardRoute: DashboardRoute,
-  EmployeesRoute: EmployeesRoute,
-  FinanceRoute: FinanceRouteWithChildren,
+  FinanceRoute: FinanceRoute,
   ForceChangePasswordRoute: ForceChangePasswordRoute,
-  HrRoute: HrRouteWithChildren,
   LoginRoute: LoginRoute,
-  RbacRoute: RbacRoute,
-  ReportsRoute: ReportsRoute,
-  UsersRoute: UsersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

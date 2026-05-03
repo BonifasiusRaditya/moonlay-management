@@ -1,0 +1,78 @@
+Table users {
+  id uuid [primary key]
+  name varchar [not null]
+  email varchar [not null]
+  role varchar // kira kira apa ya
+  created_at timestamp
+}
+
+Table bank_accounts {
+  id uuid [primary key]
+  bank_name varchar [note: 'BCA, Mandiri, BNI, etc']
+  account_number varchar
+  account_name varchar
+  status varchar [note: 'connected | disconnected']
+  last_synced_at timestamp
+  created_at timestamp
+}
+
+Table documents {
+  id uuid [primary key]
+  file_name varchar
+  file_type varchar // pdf, csv, xls
+  file_url varchar // connect ke drive
+  parse_status varchar // uploading, parsing, parsed, error
+  uploaded_by uuid [ref: > users.id]
+  uploaded_at timestamp
+}
+
+Table chart_of_accounts {
+  id uuid [primary key]
+  code varchar [unique, not null] // contoh 7101 untuk Beban Gaji dsb
+  name varchar [note: 'e.g. Beban Operasional']
+  account_type varchar [note: 'asset | liability | equity | revenue | expense']
+  is_active boolean [default: true]
+  created_at timestamp
+}
+
+Table transactions {
+  id uuid [primary key]
+  document_id uuid [ref: > documents.id]
+  transaction_date date [not null]
+  description text
+  amount decimal [not null]
+  direction varchar // debit or credit
+  raw_category varchar 
+  pipeline_status varchar // new, in_review, approved, rejected
+  created_at timestamp
+}
+
+Table llm_classifications {
+  id uuid [primary key]
+  transaction_id uuid [not null, ref: > transactions.id]
+  suggested_coa_id uuid [not null, ref: > chart_of_accounts.id]
+  confidence_score decimal // biner 0 dan 1
+  reasoning text // penjelasan kenapa transaksi dikategorikan ke coa tertentu
+  is_anomaly boolean [default: false]
+  classified_at timestamp
+}
+
+Table journal_entries {
+  id uuid [primary key]
+  transaction_id uuid [not null, ref: > transactions.id]
+  final_coa_id uuid [not null, ref: > chart_of_accounts.id]
+  debit_amount decimal
+  credit_amount decimal
+  is_auto_journaled boolean [default: false]
+  journaled_at timestamp
+}
+
+Table approvals {
+  id uuid [primary key]
+  transaction_id uuid [not null, ref: > transactions.id]
+  reviewed_by uuid [ref: > users.id]
+  action varchar // approved, rejected, needs_info
+  override_coa_id uuid [ref: > chart_of_accounts.id]
+  note text
+  reviewed_at timestamp
+}

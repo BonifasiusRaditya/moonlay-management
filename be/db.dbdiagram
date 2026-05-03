@@ -1,0 +1,195 @@
+{
+  "version": "1.0.0",
+  "darkMode": true,
+  "gridEnabling": false,
+  "detailLevel": "All",
+  "tablePositions": [
+    {
+      "name": "users",
+      "schemaName": "public",
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "bank_accounts",
+      "schemaName": "public",
+      "x": 12,
+      "y": 282
+    },
+    {
+      "name": "documents",
+      "schemaName": "public",
+      "x": 400.44611787381194,
+      "y": 178.8927493763718
+    },
+    {
+      "name": "chart_of_accounts",
+      "schemaName": "public",
+      "x": 12,
+      "y": 584
+    },
+    {
+      "name": "transactions",
+      "schemaName": "public",
+      "x": 700.1656959312364,
+      "y": 178.8927493763718
+    },
+    {
+      "name": "llm_classifications",
+      "schemaName": "public",
+      "x": 1084.1618033895793,
+      "y": -30.287114793455487
+    },
+    {
+      "name": "journal_entries",
+      "schemaName": "public",
+      "x": 1108.6906119833293,
+      "y": 304.31594235566376
+    },
+    {
+      "name": "approvals",
+      "schemaName": "public",
+      "x": 1108.6906119833293,
+      "y": 606.3159423556638
+    }
+  ],
+  "tableGroupCollapseStates": [],
+  "stickyNoteLayouts": [],
+  "referencePaths": [
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "users",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "uploaded_by"
+      ],
+      "secondTableName": "documents",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "documents",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "document_id"
+      ],
+      "secondTableName": "transactions",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "transactions",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "transaction_id"
+      ],
+      "secondTableName": "llm_classifications",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "chart_of_accounts",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "suggested_coa_id"
+      ],
+      "secondTableName": "llm_classifications",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "transactions",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "transaction_id"
+      ],
+      "secondTableName": "journal_entries",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "chart_of_accounts",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "final_coa_id"
+      ],
+      "secondTableName": "journal_entries",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "transactions",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "transaction_id"
+      ],
+      "secondTableName": "approvals",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "users",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "reviewed_by"
+      ],
+      "secondTableName": "approvals",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "id"
+      ],
+      "firstTableName": "chart_of_accounts",
+      "firstSchemaName": "public",
+      "firstRelation": "1",
+      "secondFieldNames": [
+        "override_coa_id"
+      ],
+      "secondTableName": "approvals",
+      "secondSchemaName": "public",
+      "secondRelation": "*",
+      "checkPoints": []
+    }
+  ]
+}

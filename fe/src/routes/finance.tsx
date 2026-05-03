@@ -1,329 +1,547 @@
-import { Link, Outlet, createFileRoute, useRouterState } from '@tanstack/react-router';
-import {
-  BellRing,
-  CalendarClock,
-  ChevronLeft,
-  ChevronRight,
-  CircleDot,
-  EllipsisVertical,
-  FileText,
-  Landmark,
-  ReceiptText,
-  Settings2,
-} from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { createFileRoute } from '@tanstack/react-router';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { PageTransition } from '@/components/page_transition';
 import { requireAuthBeforeLoad } from '@/utils/route_guards';
+import {
+  AlertTriangle,
+  ArrowRight,
+  Bot,
+  Building2,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Cloud,
+  Filter,
+  Link2,
+  Pencil,
+  RefreshCw,
+  Search,
+  Send,
+  Settings,
+  FileText,
+  Upload,
+  X,
+} from 'lucide-react';
+import { useRef, useState } from 'react';
 
-const PROCESS_CARDS = [
+// ─── Data ─────────────────────────────────────────────────────────────────────
+
+const SUMMARY_STATS = [
   {
-    processId: 'invoice-generation',
-    title: 'Invoice Generation',
-    description:
-      'Automated monthly billing for recurring client accounts with dynamic tax calculation.',
-    status: 'ACTIVE',
-    active: true,
-    Icon: ReceiptText,
+    label: 'Total Arus Masuk',
+    value: 'Rp 2.8M',
+    valueClass: 'text-[#00a472]',
+    borderClass: 'border-[#00301e]',
   },
   {
-    processId: 'payment-due-reminder',
-    title: 'Payment Due Date Reminder',
-    description:
-      'Multi-stage email sequence triggered 5, 2, and 0 days before invoice maturation.',
-    status: 'ACTIVE',
-    active: true,
-    Icon: BellRing,
+    label: 'Arus Keluar',
+    value: 'Rp 1.4M',
+    valueClass: 'text-[#ba1a1a]',
+    borderClass: 'border-[#ba1a1a]',
   },
   {
-    processId: 'expense-approval',
-    title: 'Expense Approval',
-    description:
-      'Hierarchical routing of corporate expense claims based on department and amount thresholds.',
-    status: 'INACTIVE',
-    active: false,
-    Icon: Settings2,
+    label: 'Otomatisasi AI',
+    value: '88',
+    suffix: 'Item',
+    valueClass: 'text-[#000f43]',
+    borderClass: 'border-[#000f43]',
   },
 ];
 
-const TRANSACTION_ROWS = [
+type RowStatus = 'normal' | 'info' | 'error';
+
+const LEDGER_ROWS: {
+  date: string;
+  time: string;
+  desc: string;
+  tag: string;
+  tagClass: string;
+  amount: string;
+  debitCode: string;
+  creditCode: string;
+  debitLabel: string;
+  creditLabel: string;
+  debitError?: boolean;
+  accountNote?: string;
+  status: RowStatus;
+}[] = [
   {
-    invoiceId: '#INV-99021',
-    name: 'Nova Labs Inc.',
-    category: 'Technology Services',
-    dueDate: 'Oct 24, 2023',
-    amount: '$12,450.00',
-    status: 'Final Reminder Sent',
-    statusClass: 'bg-blue-100 text-blue-800',
-    initials: 'NL',
-    initialsClass: 'bg-blue-100 text-blue-700',
+    date: '12 Agu 23',
+    time: '14:20 WIB',
+    desc: 'Tagihan Listrik PLN PT. Maju',
+    tag: 'Utilitas',
+    tagClass: 'bg-white border border-[#c5c5d3]/20 text-[#57657a]',
+    amount: '12.450.000',
+    debitCode: '6100',
+    creditCode: '1110',
+    debitLabel: 'Office Exp',
+    creditLabel: 'BCA',
+    status: 'normal',
   },
   {
-    invoiceId: '#INV-98845',
-    name: 'Global Freight',
-    category: 'Logistics Partner',
-    dueDate: 'Oct 28, 2023',
-    amount: '$4,200.00',
-    status: 'Pending 5-Day',
-    statusClass: 'bg-slate-100 text-slate-700',
-    initials: 'GF',
-    initialsClass: 'bg-slate-100 text-slate-700',
+    date: '11 Agu 23',
+    time: '09:15 WIB',
+    desc: 'Penerimaan Piutang A',
+    tag: 'Piutang',
+    tagClass: 'bg-[#f2f3ff] border border-[#c5c5d3]/10 text-[#57657a]',
+    amount: '450.000.000',
+    debitCode: '1110',
+    creditCode: '1200',
+    debitLabel: 'BCA',
+    creditLabel: 'A/R',
+    status: 'info',
   },
   {
-    invoiceId: '#INV-98512',
-    name: 'Arcane Solutions',
-    category: 'Software Licensing',
-    dueDate: 'Oct 19, 2023',
-    amount: '$8,120.00',
-    status: 'Overdue (Escalated)',
-    statusClass: 'bg-red-100 text-red-700',
-    initials: 'AS',
-    initialsClass: 'bg-red-100 text-red-700',
-  },
-  {
-    invoiceId: '#INV-97420',
-    name: 'Vertex Capital',
-    category: 'Asset Management',
-    dueDate: 'Nov 02, 2023',
-    amount: '$25,000.00',
-    status: 'Queued',
-    statusClass: 'bg-slate-100 text-slate-700',
-    initials: 'VC',
-    initialsClass: 'bg-blue-100 text-blue-700',
+    date: '10 Agu 23',
+    time: '16:45 WIB',
+    desc: 'Biaya Transport',
+    tag: 'Konfirmasi',
+    tagClass: 'bg-[#ffdad6] text-[#93000a]',
+    amount: '345.000',
+    debitCode: '----',
+    creditCode: '1110',
+    debitLabel: '',
+    creditLabel: '',
+    debitError: true,
+    accountNote: 'Tentukan Akun',
+    status: 'error',
   },
 ];
 
-function FinancePage() {
-  const router = useRouterState();
-  const [processCards, setProcessCards] = useState(PROCESS_CARDS);
+const CHAT_MESSAGES = [
+  {
+    role: 'ai' as const,
+    text: 'Halo! Saya mendeteksi transaksi PLN PT. Maju sebagai Beban Operasional (98% confidence). Apakah ini benar?',
+  },
+  {
+    role: 'user' as const,
+    text: 'Ya, betul. Tolong klasifikasikan ke akun 6100.',
+  },
+  {
+    role: 'ai' as const,
+    text: 'Siap! Transaksi telah disiapkan untuk akun 6100 - Office Exp. Klik tombol ceklis di tabel untuk konfirmasi akhir.',
+  },
+];
 
-  const totalActiveProcesses = useMemo(
-    () => processCards.filter((card) => card.active).length,
-    [processCards],
+const IMPORT_OPTIONS = [
+  {
+    label: 'PDF',
+    description: 'Laporan, invoice, atau dokumen hasil scan',
+    accept: '.pdf,application/pdf',
+    icon: FileText,
+  },
+  {
+    label: 'CSV',
+    description: 'Data transaksi terstruktur dari sistem lain',
+    accept: '.csv,text/csv',
+    icon: Cloud,
+  },
+  {
+    label: 'XLSX',
+    description: 'Spreadsheet bank statement atau jurnal',
+    accept: '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    icon: FileText,
+  },
+];
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function SummaryStats() {
+  return (
+    <div className="grid grid-cols-3 gap-4">
+      {SUMMARY_STATS.map(({ label, value, suffix, valueClass, borderClass }) => (
+        <div
+          key={label}
+          className={`bg-white p-6 rounded-2xl shadow-sm ring-1 ring-[#c5c5d3]/10 border-l-4 ${borderClass}`}
+        >
+          <p className="text-[#57657a] text-[10px] font-bold uppercase tracking-widest mb-1">{label}</p>
+          <p className={`text-3xl font-black ${valueClass}`}>
+            {value}
+            {suffix && <span className="text-xs font-medium text-[#57657a] ml-1">{suffix}</span>}
+          </p>
+        </div>
+      ))}
+    </div>
   );
+}
 
-  const toggleProcess = (processId: string) => {
-    setProcessCards((prevCards) =>
-      prevCards.map((card) =>
-        card.processId === processId
-          ? {
-              ...card,
-              active: !card.active,
-            }
-          : card,
-      ),
-    );
+function LedgerTable() {
+  return (
+    <div className="bg-white rounded-2xl shadow-sm ring-1 ring-[#c5c5d3]/10 overflow-hidden flex flex-col flex-1">
+      {/* Table header */}
+      <div className="p-6 border-b border-[#c5c5d3]/10 flex justify-between items-center">
+        <h3 className="font-bold text-[#000f43] text-xl tracking-tight">Antrean Persetujuan Manual</h3>
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57657a]" />
+          <input
+            type="text"
+            placeholder="Cari transaksi..."
+            className="pl-9 pr-4 py-2 bg-[#f2f3ff] border-none rounded-lg text-sm w-48 focus:ring-2 focus:ring-[#000f43]/20 outline-none transition-all"
+          />
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse table-fixed min-w-[700px]">
+          <thead>
+            <tr className="bg-[#f2f3ff]/50">
+              {['Tanggal', 'Deskripsi', 'Jumlah', 'Debit/Kredit', 'Aksi'].map((col, i) => (
+                <th
+                  key={col}
+                  className={`px-6 py-4 text-[10px] font-black text-[#57657a] uppercase tracking-[0.1em] ${
+                    i === 2 ? 'text-right' : i === 4 ? 'text-center' : ''
+                  } ${i === 0 ? 'w-[15%]' : i === 1 ? 'w-[30%]' : i === 2 ? 'w-[20%]' : i === 3 ? 'w-[20%]' : 'w-[15%]'}`}
+                >
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#c5c5d3]/10">
+            {LEDGER_ROWS.map((row) => (
+              <tr
+                key={row.date + row.desc}
+                className={`group transition-colors ${
+                  row.status === 'normal'
+                    ? 'bg-[#000f43]/5 hover:bg-[#000f43]/10'
+                    : row.status === 'error'
+                      ? 'hover:bg-[#ba1a1a]/5'
+                      : 'hover:bg-[#eaedff]'
+                }`}
+              >
+                <td className="px-6 py-5">
+                  <p className="font-bold text-[#000f43] text-sm">{row.date}</p>
+                  <p className="text-[9px] text-[#57657a] font-medium uppercase">{row.time}</p>
+                </td>
+                <td className="px-6 py-5">
+                  <p className="font-extrabold text-[#000f43] text-sm truncate" title={row.desc}>
+                    {row.desc}
+                  </p>
+                  <span
+                    className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${row.tagClass}`}
+                  >
+                    {row.tag}
+                  </span>
+                </td>
+                <td className="px-6 py-5 text-right">
+                  <p className="font-black text-[#000f43] text-sm">{row.amount}</p>
+                </td>
+                <td className="px-6 py-5">
+                  <div className="flex items-center gap-1.5">
+                    <p className={`text-xs font-bold ${row.debitError ? 'text-[#ba1a1a]' : 'text-[#000f43]'}`}>
+                      {row.debitCode}
+                    </p>
+                    <ArrowRight className="w-3 h-3 text-[#57657a]" />
+                    <p className="text-xs font-bold text-[#000f43]">{row.creditCode}</p>
+                  </div>
+                  <p className={`text-[9px] truncate ${row.debitError ? 'text-[#ba1a1a] font-semibold' : 'text-[#57657a]'}`}>
+                    {row.accountNote ?? `${row.debitLabel} → ${row.creditLabel}`}
+                  </p>
+                </td>
+                <td className="px-6 py-5">
+                  <div className="flex justify-center gap-1.5">
+                    {row.status === 'error' ? (
+                      <>
+                        <button className="w-8 h-8 rounded-lg bg-[#ffdad6] text-[#93000a] flex items-center justify-center hover:scale-110 transition-transform">
+                          <AlertTriangle className="w-4 h-4" />
+                        </button>
+                        <button className="w-8 h-8 rounded-lg bg-[#000f43] text-white flex items-center justify-center hover:scale-110 transition-transform">
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button className="w-8 h-8 rounded-lg bg-[#6ffbbe] text-[#002113] flex items-center justify-center hover:scale-110 transition-transform">
+                          <Check className="w-4 h-4 stroke-[3]" />
+                        </button>
+                        <button className="w-8 h-8 rounded-lg bg-[#eaedff] text-[#57657a] flex items-center justify-center hover:bg-[#c5c5d3] transition-colors">
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="p-6 bg-[#f2f3ff]/30 border-t border-[#c5c5d3]/10 flex justify-between items-center mt-auto">
+        <p className="text-xs text-[#57657a] font-semibold">Menampilkan 3 dari 12 entri tertunda</p>
+        <div className="flex gap-1">
+          {[ChevronLeft, ChevronRight].map((Icon, i) => (
+            <button
+              key={i}
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-[#c5c5d3]/20 hover:bg-[#000f43]/5 text-[#000f43] transition-colors"
+            >
+              <Icon className="w-4 h-4" />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BankSync() {
+  return (
+    <div className="bg-[#002072] text-white rounded-2xl p-6 shadow-sm relative overflow-hidden">
+      <div className="absolute top-0 right-0 p-4 opacity-10">
+        <Building2 className="w-16 h-16" />
+      </div>
+      <h3 className="font-bold text-lg mb-1 flex items-center gap-2">
+        <RefreshCw className="w-5 h-5 text-[#dde1ff]" />
+        Sinkronisasi Bank
+      </h3>
+      <p className="text-[#dde1ff]/70 text-sm mb-4">
+        Hubungkan rekening koran untuk rekonsiliasi otomatis real-time.
+      </p>
+      <div className="space-y-3 mb-6">
+        <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center font-bold text-xs">
+              BCA
+            </div>
+            <div>
+              <p className="text-xs font-bold">KlikBCA Bisnis</p>
+              <p className="text-[10px] text-white/50">Terakhir: 1 jam yang lalu</p>
+            </div>
+          </div>
+          <Check className="w-4 h-4 text-[#6ffbbe]" />
+        </div>
+      </div>
+      <button className="w-full py-2.5 bg-white text-[#000f43] font-bold rounded-xl text-sm hover:bg-[#dde1ff] transition-colors">
+        Tambah Koneksi Bank
+      </button>
+    </div>
+  );
+}
+
+function ErpIntegration() {
+  return (
+    <div className="bg-white rounded-2xl p-6 shadow-sm ring-1 ring-[#c5c5d3]/10 border-l-4 border-[#00a472]">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-[#000f43]/5 rounded-lg flex items-center justify-center">
+            <Link2 className="w-5 h-5 text-[#000f43]" />
+          </div>
+          <div>
+            <h3 className="font-bold text-[#000f43] text-sm">Integrasi ERP</h3>
+            <p className="text-xs text-[#57657a]">Sinkronisasi Data Eksternal</p>
+          </div>
+        </div>
+        <span className="flex items-center gap-1.5 px-2.5 py-1 bg-[#6ffbbe] text-[#002113] rounded-full text-[10px] font-black uppercase tracking-wider">
+          <span className="w-1.5 h-1.5 bg-[#002113] rounded-full animate-pulse" />
+          Aktif
+        </span>
+      </div>
+      <div className="p-4 bg-[#f2f3ff] rounded-xl flex items-center justify-between">
+        <span className="font-bold text-[#000f43] text-sm">Accurate ERP</span>
+        <button className="text-[10px] font-bold text-[#000f43] underline underline-offset-4">
+          Konfigurasi
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AiChat() {
+  return (
+    <div className="bg-[#dae2fd] rounded-2xl shadow-sm border border-[#c5c5d3]/10 flex flex-col h-[380px] overflow-hidden">
+      <div className="p-4 border-b border-[#c5c5d3]/10 bg-white flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-[#000f43] rounded-full flex items-center justify-center">
+            <Bot className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <h3 className="font-bold text-[#000f43] text-sm">Tanya FiniCore</h3>
+            <p className="text-[10px] text-[#00a472] font-semibold">AI Assistant Online</p>
+          </div>
+        </div>
+        <button className="text-[#57657a] hover:text-[#000f43]">
+          <Settings className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-[#f2f3ff]/30">
+        {CHAT_MESSAGES.map((msg, i) => (
+          <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+            {msg.role === 'ai' && (
+              <div className="w-6 h-6 rounded-full bg-[#000f43]/10 flex items-center justify-center shrink-0">
+                <Bot className="w-3 h-3 text-[#000f43]" />
+              </div>
+            )}
+            <div
+              className={`p-3 text-xs leading-relaxed shadow-sm max-w-[85%] ${
+                msg.role === 'user'
+                  ? 'bg-[#000f43] text-white rounded-2xl rounded-tr-none'
+                  : 'bg-white text-[#131b2e] rounded-2xl rounded-tl-none border border-[#c5c5d3]/5'
+              }`}
+            >
+              {msg.text}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="p-3 bg-white border-t border-[#c5c5d3]/10">
+        <div className="relative flex items-center">
+          <input
+            type="text"
+            placeholder="Tanyakan sesuatu..."
+            className="w-full pl-4 pr-10 py-2.5 bg-[#f2f3ff] border-none rounded-xl text-xs focus:ring-2 focus:ring-[#000f43]/20 outline-none"
+          />
+          <button className="absolute right-2 text-[#000f43]">
+            <Send className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProcessingToast() {
+  return (
+    <div className="fixed bottom-8 right-8 z-50 bg-white/80 backdrop-blur-md border border-[#c5c5d3]/20 rounded-2xl p-4 shadow-2xl flex items-center gap-4 ring-1 ring-[#000f43]/10">
+      <div className="w-10 h-10 bg-[#000f43] rounded-full flex items-center justify-center shadow-inner">
+        <RefreshCw className="w-5 h-5 text-white animate-spin" />
+      </div>
+      <div>
+        <p className="font-bold text-[#000f43] text-sm">AI Sedang Memproses</p>
+        <p className="text-[10px] text-[#57657a] font-medium">2 dokumen baru sedang dianalisis...</p>
+      </div>
+      <button className="ml-4 p-1.5 hover:bg-[#eaedff] rounded-lg transition-colors">
+        <X className="w-4 h-4 text-[#57657a]" />
+      </button>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+function JurnalOtomatisPage() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isImportMenuOpen, setIsImportMenuOpen] = useState(false);
+  const [selectedImportAccept, setSelectedImportAccept] = useState('');
+
+  const openFilePicker = (accept: string) => {
+    setSelectedImportAccept(accept);
+    setIsImportMenuOpen(false);
+    window.requestAnimationFrame(() => {
+      fileInputRef.current?.click();
+    });
   };
 
-  // /finance/config/$processID is nested under /finance in the generated route tree.
-  // Render child routes here so the configuration page can mount correctly.
-  if (router.location.pathname.startsWith('/finance/config/')) {
-    return <Outlet />;
-  }
+  const handleImportFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    // Placeholder for upload flow integration.
+    console.log('Selected import file:', file);
+    event.target.value = '';
+  };
 
   return (
     <PageTransition>
-      <div className="mx-auto max-w-7xl space-y-8 p-8">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1 className="text-3xl font-black tracking-tight text-slate-900 md:text-4xl">
-                Finance Process Module
-              </h1>
-              <p className="mt-1 text-sm text-slate-600">
-                Orchestrate your automated financial workflows.
-              </p>
-            </div>
-
-            <div className="rounded-lg border border-slate-200 bg-white px-4 py-2 shadow-sm">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                Total Active
-              </p>
-              <p className="text-xl font-bold text-blue-700">{totalActiveProcesses} Processes</p>
-            </div>
+      <div className="min-h-screen bg-[#faf8ff] p-8 lg:p-12">
+        {/* Header */}
+        <header className="flex justify-between items-start mb-12">
+          <div>
+            <h2 className="text-4xl font-extrabold text-[#000f43] tracking-tight mb-2">
+              Jurnal Otomatis
+            </h2>
+            <p className="text-[#57657a] text-lg">Otomatisasi pencatatan keuangan cerdas.</p>
           </div>
+          <div className="flex items-center gap-4">
+            <button className="flex items-center gap-2 px-4 py-3 rounded-lg bg-[#e2e7ff] text-[#000f43] font-semibold hover:bg-[#dae2fd] transition-colors">
+              <Filter className="w-5 h-5" />
+              <span>Filter</span>
+            </button>
+            <DropdownMenu.Root open={isImportMenuOpen} onOpenChange={setIsImportMenuOpen}>
+              <DropdownMenu.Trigger asChild>
+                <button className="flex items-center gap-2 px-8 py-4 rounded-xl bg-[#000f43] text-white text-lg font-bold shadow-2xl shadow-[#000f43]/20 hover:scale-[1.02] active:scale-[0.98] transition-all focus:outline-none focus:ring-2 focus:ring-[#000f43]/25">
+                  <Upload className="w-6 h-6" />
+                  <span>Impor Dokumen</span>
+                </button>
+              </DropdownMenu.Trigger>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            {processCards.map((card) => (
-              <article
-                key={card.title}
-                className={`flex min-h-64 flex-col justify-between rounded-xl border bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
-                  card.active ? 'border-blue-100' : 'border-slate-200'
-                }`}
-              >
-                <div>
-                  <div className="mb-4 flex items-center justify-between gap-3">
-                    <div className={`rounded-lg p-3 ${card.active ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
-                      <card.Icon className="h-5 w-5" />
-                    </div>
-
-                    <button
-                      type="button"
-                      aria-pressed={card.active}
-                      aria-label={`${card.active ? 'Disable' : 'Enable'} ${card.title}`}
-                      onClick={() => toggleProcess(card.processId)}
-                      className={`relative inline-flex h-7 w-14 items-center rounded-full border transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 ${
-                        card.active
-                          ? 'border-blue-500 bg-gradient-to-r from-blue-600 to-blue-700'
-                          : 'border-slate-300 bg-slate-200 hover:bg-slate-300'
-                      }`}>
-                      
-                      <span
-                        className={`absolute left-1 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow transition-transform duration-300 ${
-                          card.active ? 'translate-x-7' : 'translate-x-0'
-                        }`}
-                      />
-                    </button>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content
+                  align="end"
+                  sideOffset={12}
+                  className="z-50 min-w-[340px] overflow-hidden rounded-2xl border border-[#c5c5d3]/20 bg-white shadow-2xl shadow-[#000f43]/10"
+                >
+                  <div className="border-b border-[#c5c5d3]/10 px-4 py-3">
+                    <p className="text-sm font-bold text-[#000f43]">Pilih tipe dokumen</p>
+                    <p className="text-xs text-[#57657a]">Pilih format file yang ingin diimpor ke jurnal otomatis.</p>
                   </div>
 
-                  <h2 className="text-lg font-bold text-slate-900">{card.title}</h2>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-600">{card.description}</p>
-                </div>
+                  <div className="p-2">
+                    {IMPORT_OPTIONS.map((option) => {
+                      const Icon = option.icon;
 
-                <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
-                  <span className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600">
-                    <CircleDot className={`h-3.5 w-3.5 ${card.active ? 'text-blue-700' : 'text-slate-400'}`} />
-                    {card.active ? 'ACTIVE' : 'INACTIVE'}
-                  </span>
-
-                  <Link
-                    to="/finance/config/$processID"
-                    params={{ processID: card.processId }}
-                    className="inline-flex items-center gap-1 text-sm font-semibold text-blue-700 hover:underline"
-                  >
-                    Configure
-                    <ChevronRight className="h-4 w-4" />
-                  </Link>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex flex-col gap-4 border-b border-slate-100 px-6 py-6 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900">Transaction Hub</h2>
-                <p className="text-sm text-slate-600">
-                  Monitor and manage all financial triggers in one place.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <button className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200">
-                  Export CSV
-                </button>
-                <button className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-800">
-                  Process Selection
-                </button>
-              </div>
-            </div>
-
-            <div className="border-b border-slate-100 px-6">
-              <div className="flex gap-6 overflow-x-auto">
-                <button className="border-b-2 border-blue-700 py-4 text-sm font-semibold text-blue-700">
-                  Incoming Invoices
-                </button>
-                <button className="border-b-2 border-transparent py-4 text-sm font-medium text-slate-500 transition-colors hover:text-slate-700">
-                  Payment Due Dates
-                </button>
-                <button className="border-b-2 border-transparent py-4 text-sm font-medium text-slate-500 transition-colors hover:text-slate-700">
-                  Recent Transactions
-                </button>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="min-w-[920px] w-full border-collapse text-left">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
-                      Invoice ID
-                    </th>
-                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
-                      Vendor/Client
-                    </th>
-                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
-                      Due Date
-                    </th>
-                    <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
-                      Amount
-                    </th>
-                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-slate-100">
-                  {TRANSACTION_ROWS.map((row) => (
-                    <tr key={row.invoiceId} className="transition-colors hover:bg-slate-50">
-                      <td className="px-6 py-5 text-sm font-semibold text-blue-700">{row.invoiceId}</td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`flex h-8 w-8 items-center justify-center rounded text-xs font-bold ${row.initialsClass}`}
-                          >
-                            {row.initials}
-                          </div>
-
-                          <div>
-                            <p className="text-sm font-bold text-slate-900">{row.name}</p>
-                            <p className="text-xs text-slate-500">{row.category}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-sm text-slate-700">{row.dueDate}</td>
-                      <td className="px-6 py-5 text-right text-sm font-bold text-slate-900">{row.amount}</td>
-                      <td className="px-6 py-5">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${row.statusClass}`}
+                      return (
+                        <DropdownMenu.Item
+                          key={option.label}
+                          onSelect={(event) => {
+                            event.preventDefault();
+                            openFilePicker(option.accept);
+                          }}
+                          className="group cursor-pointer rounded-xl outline-none data-[highlighted]:bg-[#dae2fd] focus:bg-[#dae2fd] transition-colors"
                         >
-                          <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current opacity-70" />
-                          {row.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5 text-slate-500">
-                        <button className="rounded p-1 transition-colors hover:bg-slate-100 hover:text-slate-800">
-                          <EllipsisVertical className="h-4 w-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                          <div className="flex items-start gap-3 rounded-xl px-3 py-2 transition-colors">
+                            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl group-hover:bg-[#000f43]/">
+                              <Icon className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="text-sm font-bold text-[#000f43] transition-colors">{option.label}</p>
+                                <span className="rounded-full bg-[#e2e7ff] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors group-hover:bg-white/20 group-data-[highlighted]:bg-white/20">
+                                  {option.label}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-xs leading-relaxed text-[#57657a] transition-colors">
+                                {option.description}
+                              </p>
+                            </div>
+                          </div>
+                        </DropdownMenu.Item>
+                      );
+                    })}
+                  </div>
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={selectedImportAccept}
+              className="hidden"
+              onChange={handleImportFileChange}
+            />
+          </div>
+        </header>
 
-            <div className="flex flex-col gap-3 border-t border-slate-100 bg-slate-50/80 px-6 py-4 text-xs text-slate-500 md:flex-row md:items-center md:justify-between">
-              <span>Showing 4 of 28 records for active view</span>
-              <div className="inline-flex items-center gap-3">
-                <button className="rounded p-1 transition-colors hover:bg-slate-200 hover:text-slate-700">
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <span className="font-semibold text-slate-700">Page 1 of 7</span>
-                <button className="rounded p-1 transition-colors hover:bg-slate-200 hover:text-slate-700">
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
+        {/* Bento Grid */}
+        <div className="grid grid-cols-12 gap-6">
+          {/* Left — ledger */}
+          <section className="col-span-12 lg:col-span-8 flex flex-col gap-6">
+            <SummaryStats />
+            <LedgerTable />
           </section>
 
-          <footer className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white/70 px-4 py-3 text-xs text-slate-500">
-            <div className="inline-flex items-center gap-2">
-              <Landmark className="h-3.5 w-3.5" />
-              Finance module synchronized with process automation stack.
-            </div>
-            <div className="inline-flex items-center gap-4">
-              <span className="inline-flex items-center gap-1">
-                <CalendarClock className="h-3.5 w-3.5" />
-                Updated 2m ago
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <FileText className="h-3.5 w-3.5" />
-                28 invoices tracked
-              </span>
-            </div>
-          </footer>
+          {/* Right — utilities */}
+          <section className="col-span-12 lg:col-span-4 flex flex-col gap-6">
+            <BankSync />
+            <ErpIntegration />
+            <AiChat />
+          </section>
+        </div>
+
+        <ProcessingToast />
       </div>
     </PageTransition>
   );
@@ -333,5 +551,5 @@ export const Route = createFileRoute('/finance')({
   beforeLoad: async () => {
     await requireAuthBeforeLoad();
   },
-  component: FinancePage,
+  component: JurnalOtomatisPage,
 });

@@ -24,7 +24,6 @@ function RootComponent() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f0f0eb' }}>
-      <NotificationToast />
       {isAuthLightPage ? <Outlet /> : <SidebarLayout><Outlet /></SidebarLayout>}
     </div>
   );
