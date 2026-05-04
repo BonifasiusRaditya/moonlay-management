@@ -38,7 +38,9 @@ Table chart_of_accounts {
 Table transactions {
   id uuid [primary key]
   document_id uuid [ref: > documents.id]
+  invoice_number varchar // no faktur
   transaction_date date [not null]
+  
   description text
   amount decimal [not null]
   direction varchar // debit or credit

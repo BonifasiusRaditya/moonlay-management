@@ -8,49 +8,49 @@
       "name": "users",
       "schemaName": "public",
       "x": 12,
-      "y": 12
+      "y": 354
     },
     {
       "name": "bank_accounts",
       "schemaName": "public",
       "x": 12,
-      "y": 282
+      "y": 12
     },
     {
       "name": "documents",
       "schemaName": "public",
-      "x": 400.44611787381194,
-      "y": 178.8927493763718
+      "x": 476.0759316177605,
+      "y": 311.5976434159175
     },
     {
       "name": "chart_of_accounts",
       "schemaName": "public",
       "x": 12,
-      "y": 584
+      "y": 592
     },
     {
       "name": "transactions",
       "schemaName": "public",
-      "x": 700.1656959312364,
-      "y": 178.8927493763718
+      "x": 988.40234375,
+      "y": 363
     },
     {
       "name": "llm_classifications",
       "schemaName": "public",
-      "x": 1084.1618033895793,
-      "y": -30.287114793455487
+      "x": 1508.29296875,
+      "y": 354
     },
     {
       "name": "journal_entries",
       "schemaName": "public",
-      "x": 1108.6906119833293,
-      "y": 304.31594235566376
+      "x": 1508.29296875,
+      "y": 656
     },
     {
       "name": "approvals",
       "schemaName": "public",
-      "x": 1108.6906119833293,
-      "y": 606.3159423556638
+      "x": 1508.29296875,
+      "y": 958
     }
   ],
   "tableGroupCollapseStates": [],

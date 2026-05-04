@@ -24,524 +24,739 @@ import {
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
-
-const SUMMARY_STATS = [
-  {
-    label: 'Total Arus Masuk',
-    value: 'Rp 2.8M',
-    valueClass: 'text-[#00a472]',
-    borderClass: 'border-[#00301e]',
-  },
-  {
-    label: 'Arus Keluar',
-    value: 'Rp 1.4M',
-    valueClass: 'text-[#ba1a1a]',
-    borderClass: 'border-[#ba1a1a]',
-  },
-  {
-    label: 'Otomatisasi AI',
-    value: '88',
-    suffix: 'Item',
-    valueClass: 'text-[#000f43]',
-    borderClass: 'border-[#000f43]',
-  },
+const transactions = [
+  { id: 1, date: '12 Agu 23', time: '14:20 WIB', vendor: 'PLN Persero', initials: 'PL', amount: '12.450.000', coa: '6100 - Beban Listrik', score: 98, status: 'verified' },
+  { id: 2, date: '11 Agu 23', time: '10:45 WIB', vendor: 'Biznet Networks', initials: 'BN', amount: '8.200.000', coa: '6200 - Beban Internet', score: 82, status: 'review' },
+  { id: 3, date: '10 Agu 23', time: '09:15 WIB', vendor: 'Telkomsel', initials: 'TS', amount: '1.500.000', coa: '6200 - Beban Internet', score: 99, status: 'verified' },
+  { id: 4, date: '09 Agu 23', time: '16:30 WIB', vendor: 'Grab Indonesia', initials: 'GR', amount: '450.000', coa: '6500 - Beban Perjalanan', score: 95, status: 'verified' },
+  { id: 5, date: '08 Agu 23', time: '11:00 WIB', vendor: 'Tokopedia', initials: 'TK', amount: '2.100.000', coa: '6600 - Perlengkapan', score: 92, status: 'verified' },
+  { id: 6, date: '07 Agu 23', time: '13:45 WIB', vendor: 'Amazon Web Services', initials: 'AZ', amount: '15.600.000', coa: '6200 - Beban Cloud', score: 98, status: 'verified' },
+  { id: 7, date: '06 Agu 23', time: '10:20 WIB', vendor: 'PAM Jaya', initials: 'PD', amount: '1.200.000', coa: '6100 - Beban Air', score: 88, status: 'review' },
+  { id: 8, date: '05 Agu 23', time: '15:10 WIB', vendor: 'Slack Technologies', initials: 'SL', amount: '3.400.000', coa: '6200 - Beban Software', score: 96, status: 'verified' },
+  { id: 9, date: '04 Agu 23', time: '09:30 WIB', vendor: 'Microsoft 365', initials: 'MF', amount: '7.800.000', coa: '6200 - Beban Lisensi', score: 97, status: 'verified' },
+  { id: 10, date: '03 Agu 23', time: '16:45 WIB', vendor: 'Gojek', initials: 'GO', amount: '320.000', coa: '6500 - Beban Kurir', score: 94, status: 'verified' },
+  { id: 11, date: '02 Agu 23', time: '11:15 WIB', vendor: 'Facebook Ads', initials: 'FB', amount: '25.000.000', coa: '6700 - Beban Iklan', score: 99, status: 'verified' },
+  { id: 12, date: '01 Agu 23', time: '14:00 WIB', vendor: 'Biznet Networks', initials: 'BN', amount: '8.200.000', coa: '6200 - Beban Internet', score: 100, status: 'verified' },
 ];
 
-type RowStatus = 'normal' | 'info' | 'error';
-
-const LEDGER_ROWS: {
-  date: string;
-  time: string;
-  desc: string;
-  tag: string;
-  tagClass: string;
-  amount: string;
-  debitCode: string;
-  creditCode: string;
-  debitLabel: string;
-  creditLabel: string;
-  debitError?: boolean;
-  accountNote?: string;
-  status: RowStatus;
-}[] = [
-  {
-    date: '12 Agu 23',
-    time: '14:20 WIB',
-    desc: 'Tagihan Listrik PLN PT. Maju',
-    tag: 'Utilitas',
-    tagClass: 'bg-white border border-[#c5c5d3]/20 text-[#57657a]',
-    amount: '12.450.000',
-    debitCode: '6100',
-    creditCode: '1110',
-    debitLabel: 'Office Exp',
-    creditLabel: 'BCA',
-    status: 'normal',
-  },
-  {
-    date: '11 Agu 23',
-    time: '09:15 WIB',
-    desc: 'Penerimaan Piutang A',
-    tag: 'Piutang',
-    tagClass: 'bg-[#f2f3ff] border border-[#c5c5d3]/10 text-[#57657a]',
-    amount: '450.000.000',
-    debitCode: '1110',
-    creditCode: '1200',
-    debitLabel: 'BCA',
-    creditLabel: 'A/R',
-    status: 'info',
-  },
-  {
-    date: '10 Agu 23',
-    time: '16:45 WIB',
-    desc: 'Biaya Transport',
-    tag: 'Konfirmasi',
-    tagClass: 'bg-[#ffdad6] text-[#93000a]',
-    amount: '345.000',
-    debitCode: '----',
-    creditCode: '1110',
-    debitLabel: '',
-    creditLabel: '',
-    debitError: true,
-    accountNote: 'Tentukan Akun',
-    status: 'error',
-  },
+const aiSuggestions = [
+  { vendor: 'Biznet Networks', coa: 'Beban Internet (6200)', amount: 'Rp 8.200.000', confidence: 94 },
+  { vendor: 'PT. Maju', coa: 'Beban Operasional (6100)', amount: 'Rp 12.450.000', confidence: 98 },
+  { vendor: 'Telkomsel', coa: 'Beban Komunikasi', amount: 'Rp 1.500.000', confidence: 92 },
+  { vendor: 'Gojek / Grab', coa: 'Beban Perjalanan', amount: 'Rp 345.000', confidence: 88 },
 ];
 
-const CHAT_MESSAGES = [
-  {
-    role: 'ai' as const,
-    text: 'Halo! Saya mendeteksi transaksi PLN PT. Maju sebagai Beban Operasional (98% confidence). Apakah ini benar?',
-  },
-  {
-    role: 'user' as const,
-    text: 'Ya, betul. Tolong klasifikasikan ke akun 6100.',
-  },
-  {
-    role: 'ai' as const,
-    text: 'Siap! Transaksi telah disiapkan untuk akun 6100 - Office Exp. Klik tombol ceklis di tabel untuk konfirmasi akhir.',
-  },
+const coaOptions = [
+  '6200 - Beban Internet & Komunikasi',
+  '6100 - Beban Listrik & Air',
+  '6300 - Beban Sewa Kantor',
+  '6400 - Beban Gaji & Tunjangan',
+  '2100 - Hutang Usaha',
 ];
 
-const IMPORT_OPTIONS = [
-  {
-    label: 'PDF',
-    description: 'Laporan, invoice, atau dokumen hasil scan',
-    accept: '.pdf,application/pdf',
-    icon: FileText,
-  },
-  {
-    label: 'CSV',
-    description: 'Data transaksi terstruktur dari sistem lain',
-    accept: '.csv,text/csv',
-    icon: Cloud,
-  },
-  {
-    label: 'XLSX',
-    description: 'Spreadsheet bank statement atau jurnal',
-    accept: '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    icon: FileText,
-  },
-];
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function SummaryStats() {
+function StatusBadge({ status }: { status: string }) {
+  if (status === 'verified') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold uppercase tracking-tight border border-emerald-100">
+        <span className="w-1 h-1 bg-emerald-500 rounded-full" />
+        Verified
+      </span>
+    );
+  }
   return (
-    <div className="grid grid-cols-3 gap-4">
-      {SUMMARY_STATS.map(({ label, value, suffix, valueClass, borderClass }) => (
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-bold uppercase tracking-tight border border-amber-100">
+      <span className="w-1 h-1 bg-amber-500 rounded-full" />
+      Perlu Review
+    </span>
+  );
+}
+
+function CoaBadge({ coa, status }: { coa: string; status: string }) {
+  const isReview = status === 'review';
+  return (
+    <span
+      className={`px-2 py-1 text-[10px] font-bold rounded-lg border ${
+        isReview
+          ? 'bg-amber-50 text-amber-600 border-amber-200'
+          : 'bg-indigo-50 text-indigo-700 border-indigo-100'
+      }`}
+    >
+      {coa}
+    </span>
+  );
+}
+
+function DetailDrawer({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const [selectedCoa, setSelectedCoa] = useState(coaOptions[0]);
+
+  return (
+    <>
+      {/* Backdrop */}
+      {open && (
         <div
-          key={label}
-          className={`bg-white p-6 rounded-2xl shadow-sm ring-1 ring-[#c5c5d3]/10 border-l-4 ${borderClass}`}
-        >
-          <p className="text-[#57657a] text-[10px] font-bold uppercase tracking-widest mb-1">{label}</p>
-          <p className={`text-3xl font-black ${valueClass}`}>
-            {value}
-            {suffix && <span className="text-xs font-medium text-[#57657a] ml-1">{suffix}</span>}
-          </p>
-        </div>
-      ))}
-    </div>
-  );
-}
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-40"
+          onClick={onClose}
+        />
+      )}
 
-function LedgerTable() {
-  return (
-    <div className="bg-white rounded-2xl shadow-sm ring-1 ring-[#c5c5d3]/10 overflow-hidden flex flex-col flex-1">
-      {/* Table header */}
-      <div className="p-6 border-b border-[#c5c5d3]/10 flex justify-between items-center">
-        <h3 className="font-bold text-[#000f43] text-xl tracking-tight">Antrean Persetujuan Manual</h3>
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57657a]" />
-          <input
-            type="text"
-            placeholder="Cari transaksi..."
-            className="pl-9 pr-4 py-2 bg-[#f2f3ff] border-none rounded-lg text-sm w-48 focus:ring-2 focus:ring-[#000f43]/20 outline-none transition-all"
-          />
-        </div>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse table-fixed min-w-[700px]">
-          <thead>
-            <tr className="bg-[#f2f3ff]/50">
-              {['Tanggal', 'Deskripsi', 'Jumlah', 'Debit/Kredit', 'Aksi'].map((col, i) => (
-                <th
-                  key={col}
-                  className={`px-6 py-4 text-[10px] font-black text-[#57657a] uppercase tracking-[0.1em] ${
-                    i === 2 ? 'text-right' : i === 4 ? 'text-center' : ''
-                  } ${i === 0 ? 'w-[15%]' : i === 1 ? 'w-[30%]' : i === 2 ? 'w-[20%]' : i === 3 ? 'w-[20%]' : 'w-[15%]'}`}
-                >
-                  {col}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#c5c5d3]/10">
-            {LEDGER_ROWS.map((row) => (
-              <tr
-                key={row.date + row.desc}
-                className={`group transition-colors ${
-                  row.status === 'normal'
-                    ? 'bg-[#000f43]/5 hover:bg-[#000f43]/10'
-                    : row.status === 'error'
-                      ? 'hover:bg-[#ba1a1a]/5'
-                      : 'hover:bg-[#eaedff]'
-                }`}
-              >
-                <td className="px-6 py-5">
-                  <p className="font-bold text-[#000f43] text-sm">{row.date}</p>
-                  <p className="text-[9px] text-[#57657a] font-medium uppercase">{row.time}</p>
-                </td>
-                <td className="px-6 py-5">
-                  <p className="font-extrabold text-[#000f43] text-sm truncate" title={row.desc}>
-                    {row.desc}
-                  </p>
-                  <span
-                    className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${row.tagClass}`}
-                  >
-                    {row.tag}
-                  </span>
-                </td>
-                <td className="px-6 py-5 text-right">
-                  <p className="font-black text-[#000f43] text-sm">{row.amount}</p>
-                </td>
-                <td className="px-6 py-5">
-                  <div className="flex items-center gap-1.5">
-                    <p className={`text-xs font-bold ${row.debitError ? 'text-[#ba1a1a]' : 'text-[#000f43]'}`}>
-                      {row.debitCode}
-                    </p>
-                    <ArrowRight className="w-3 h-3 text-[#57657a]" />
-                    <p className="text-xs font-bold text-[#000f43]">{row.creditCode}</p>
-                  </div>
-                  <p className={`text-[9px] truncate ${row.debitError ? 'text-[#ba1a1a] font-semibold' : 'text-[#57657a]'}`}>
-                    {row.accountNote ?? `${row.debitLabel} → ${row.creditLabel}`}
-                  </p>
-                </td>
-                <td className="px-6 py-5">
-                  <div className="flex justify-center gap-1.5">
-                    {row.status === 'error' ? (
-                      <>
-                        <button className="w-8 h-8 rounded-lg bg-[#ffdad6] text-[#93000a] flex items-center justify-center hover:scale-110 transition-transform">
-                          <AlertTriangle className="w-4 h-4" />
-                        </button>
-                        <button className="w-8 h-8 rounded-lg bg-[#000f43] text-white flex items-center justify-center hover:scale-110 transition-transform">
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button className="w-8 h-8 rounded-lg bg-[#6ffbbe] text-[#002113] flex items-center justify-center hover:scale-110 transition-transform">
-                          <Check className="w-4 h-4 stroke-[3]" />
-                        </button>
-                        <button className="w-8 h-8 rounded-lg bg-[#eaedff] text-[#57657a] flex items-center justify-center hover:bg-[#c5c5d3] transition-colors">
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="p-6 bg-[#f2f3ff]/30 border-t border-[#c5c5d3]/10 flex justify-between items-center mt-auto">
-        <p className="text-xs text-[#57657a] font-semibold">Menampilkan 3 dari 12 entri tertunda</p>
-        <div className="flex gap-1">
-          {[ChevronLeft, ChevronRight].map((Icon, i) => (
-            <button
-              key={i}
-              className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-[#c5c5d3]/20 hover:bg-[#000f43]/5 text-[#000f43] transition-colors"
-            >
-              <Icon className="w-4 h-4" />
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function BankSync() {
-  return (
-    <div className="bg-[#002072] text-white rounded-2xl p-6 shadow-sm relative overflow-hidden">
-      <div className="absolute top-0 right-0 p-4 opacity-10">
-        <Building2 className="w-16 h-16" />
-      </div>
-      <h3 className="font-bold text-lg mb-1 flex items-center gap-2">
-        <RefreshCw className="w-5 h-5 text-[#dde1ff]" />
-        Sinkronisasi Bank
-      </h3>
-      <p className="text-[#dde1ff]/70 text-sm mb-4">
-        Hubungkan rekening koran untuk rekonsiliasi otomatis real-time.
-      </p>
-      <div className="space-y-3 mb-6">
-        <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center font-bold text-xs">
-              BCA
-            </div>
-            <div>
-              <p className="text-xs font-bold">KlikBCA Bisnis</p>
-              <p className="text-[10px] text-white/50">Terakhir: 1 jam yang lalu</p>
-            </div>
-          </div>
-          <Check className="w-4 h-4 text-[#6ffbbe]" />
-        </div>
-      </div>
-      <button className="w-full py-2.5 bg-white text-[#000f43] font-bold rounded-xl text-sm hover:bg-[#dde1ff] transition-colors">
-        Tambah Koneksi Bank
-      </button>
-    </div>
-  );
-}
-
-function ErpIntegration() {
-  return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm ring-1 ring-[#c5c5d3]/10 border-l-4 border-[#00a472]">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#000f43]/5 rounded-lg flex items-center justify-center">
-            <Link2 className="w-5 h-5 text-[#000f43]" />
-          </div>
-          <div>
-            <h3 className="font-bold text-[#000f43] text-sm">Integrasi ERP</h3>
-            <p className="text-xs text-[#57657a]">Sinkronisasi Data Eksternal</p>
-          </div>
-        </div>
-        <span className="flex items-center gap-1.5 px-2.5 py-1 bg-[#6ffbbe] text-[#002113] rounded-full text-[10px] font-black uppercase tracking-wider">
-          <span className="w-1.5 h-1.5 bg-[#002113] rounded-full animate-pulse" />
-          Aktif
-        </span>
-      </div>
-      <div className="p-4 bg-[#f2f3ff] rounded-xl flex items-center justify-between">
-        <span className="font-bold text-[#000f43] text-sm">Accurate ERP</span>
-        <button className="text-[10px] font-bold text-[#000f43] underline underline-offset-4">
-          Konfigurasi
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function AiChat() {
-  return (
-    <div className="bg-[#dae2fd] rounded-2xl shadow-sm border border-[#c5c5d3]/10 flex flex-col h-[380px] overflow-hidden">
-      <div className="p-4 border-b border-[#c5c5d3]/10 bg-white flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#000f43] rounded-full flex items-center justify-center">
-            <Bot className="w-4 h-4 text-white" />
-          </div>
-          <div>
-            <h3 className="font-bold text-[#000f43] text-sm">Tanya FiniCore</h3>
-            <p className="text-[10px] text-[#00a472] font-semibold">AI Assistant Online</p>
-          </div>
-        </div>
-        <button className="text-[#57657a] hover:text-[#000f43]">
-          <Settings className="w-4 h-4" />
-        </button>
-      </div>
-
-      <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-[#f2f3ff]/30">
-        {CHAT_MESSAGES.map((msg, i) => (
-          <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-            {msg.role === 'ai' && (
-              <div className="w-6 h-6 rounded-full bg-[#000f43]/10 flex items-center justify-center shrink-0">
-                <Bot className="w-3 h-3 text-[#000f43]" />
-              </div>
-            )}
-            <div
-              className={`p-3 text-xs leading-relaxed shadow-sm max-w-[85%] ${
-                msg.role === 'user'
-                  ? 'bg-[#000f43] text-white rounded-2xl rounded-tr-none'
-                  : 'bg-white text-[#131b2e] rounded-2xl rounded-tl-none border border-[#c5c5d3]/5'
-              }`}
-            >
-              {msg.text}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="p-3 bg-white border-t border-[#c5c5d3]/10">
-        <div className="relative flex items-center">
-          <input
-            type="text"
-            placeholder="Tanyakan sesuatu..."
-            className="w-full pl-4 pr-10 py-2.5 bg-[#f2f3ff] border-none rounded-xl text-xs focus:ring-2 focus:ring-[#000f43]/20 outline-none"
-          />
-          <button className="absolute right-2 text-[#000f43]">
-            <Send className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ProcessingToast() {
-  return (
-    <div className="fixed bottom-8 right-8 z-50 bg-white/80 backdrop-blur-md border border-[#c5c5d3]/20 rounded-2xl p-4 shadow-2xl flex items-center gap-4 ring-1 ring-[#000f43]/10">
-      <div className="w-10 h-10 bg-[#000f43] rounded-full flex items-center justify-center shadow-inner">
-        <RefreshCw className="w-5 h-5 text-white animate-spin" />
-      </div>
-      <div>
-        <p className="font-bold text-[#000f43] text-sm">AI Sedang Memproses</p>
-        <p className="text-[10px] text-[#57657a] font-medium">2 dokumen baru sedang dianalisis...</p>
-      </div>
-      <button className="ml-4 p-1.5 hover:bg-[#eaedff] rounded-lg transition-colors">
-        <X className="w-4 h-4 text-[#57657a]" />
-      </button>
-    </div>
-  );
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
-function JurnalOtomatisPage() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isImportMenuOpen, setIsImportMenuOpen] = useState(false);
-  const [selectedImportAccept, setSelectedImportAccept] = useState('');
-
-  const openFilePicker = (accept: string) => {
-    setSelectedImportAccept(accept);
-    setIsImportMenuOpen(false);
-    window.requestAnimationFrame(() => {
-      fileInputRef.current?.click();
-    });
-  };
-
-  const handleImportFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    // Placeholder for upload flow integration.
-    console.log('Selected import file:', file);
-    event.target.value = '';
-  };
-
-  return (
-    <PageTransition>
-      <div className="min-h-screen bg-[#faf8ff] p-8 lg:p-12">
+      {/* Drawer */}
+      <div
+        className={`fixed top-0 right-0 h-full w-[520px] bg-white shadow-2xl z-50 border-l border-slate-200 flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          open ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
         {/* Header */}
-        <header className="flex justify-between items-start mb-12">
-          <div>
-            <h2 className="text-4xl font-extrabold text-[#000f43] tracking-tight mb-2">
-              Jurnal Otomatis
-            </h2>
-            <p className="text-[#57657a] text-lg">Otomatisasi pencatatan keuangan cerdas.</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <button className="flex items-center gap-2 px-4 py-3 rounded-lg bg-[#e2e7ff] text-[#000f43] font-semibold hover:bg-[#dae2fd] transition-colors">
-              <Filter className="w-5 h-5" />
-              <span>Filter</span>
+        <div className="p-6 border-b border-slate-100 flex-shrink-0">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-1 bg-indigo-50 text-indigo-700 text-[10px] font-extrabold uppercase rounded tracking-wider">
+                Invoice Pembelian
+              </span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-bold uppercase tracking-tight border border-amber-100">
+                <span className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                Perlu Review
+              </span>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors text-slate-400"
+            >
+              <X size={18} />
             </button>
-            <DropdownMenu.Root open={isImportMenuOpen} onOpenChange={setIsImportMenuOpen}>
+          </div>
+          <div className="flex justify-between items-end">
+            <div>
+              <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                Biznet Networks
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mt-1">
+                Ref: INV/20230811/BIZ/990
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                Total Transaksi
+              </p>
+              <p className="text-2xl font-black text-slate-900">Rp 8.200.000</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Scrollable Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-8">
+          {/* Basic Details */}
+          <section className="grid grid-cols-2 gap-4">
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                Tanggal Transaksi
+              </p>
+              <p className="text-sm font-bold text-slate-900">11 Agustus 2023</p>
+              <p className="text-[10px] text-slate-500 font-medium">
+                Waktu: 10:45 WIB
+              </p>
+            </div>
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                Metode Pembayaran
+              </p>
+              <p className="text-sm font-bold text-slate-900">
+                Transfer Bank (BCA)
+              </p>
+              <p className="text-[10px] text-slate-500 font-medium">
+                Acc: **********8821
+              </p>
+            </div>
+          </section>
+
+          {/* AI Insight */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                Klasifikasi AI
+              </h4>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-emerald-600 uppercase">
+                  Akurasi Tinggi
+                </span>
+                <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-500 w-[94%]" />
+                </div>
+                <span className="text-xs font-black text-emerald-600">94.2%</span>
+              </div>
+            </div>
+            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-1 h-full bg-indigo-700 rounded-l-xl" />
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                  <Bot size={20} className="text-indigo-700" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                    Saran COA
+                  </p>
+                  <p className="text-base font-bold text-indigo-700">
+                    6200 - Beban Internet & Komunikasi
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                <Bot size={12} />
+                Penalaran AI
+              </p>
+              <div className="bg-white/70 border border-slate-100 rounded-lg p-3 text-xs text-slate-600 leading-relaxed italic">
+                "Pencocokan keyword 'Dedicated Internet' pada metadata invoice
+                ditemukan dengan tingkat kepercayaan tinggi. Vendor 'Biznet'
+                memiliki probabilitas 98% terhubung ke akun 6200 berdasarkan
+                histori transaksi 12 bulan terakhir."
+              </div>
+            </div>
+          </section>
+
+          {/* Journal Entry Draft */}
+          <section>
+            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
+              Draf Entri Jurnal
+            </h4>
+            <div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-slate-50 border-b border-slate-100">
+                  <tr>
+                    <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-tighter">
+                      Akun / Keterangan
+                    </th>
+                    <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-tighter text-right">
+                      Debit
+                    </th>
+                    <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-tighter text-right">
+                      Kredit
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  <tr>
+                    <td className="px-4 py-3">
+                      <p className="font-semibold">6200 - Beban Internet</p>
+                      <p className="text-[10px] text-slate-400">Biznet Networks</p>
+                    </td>
+                    <td className="px-4 py-3 text-right font-bold">8.200.000</td>
+                    <td className="px-4 py-3 text-right text-slate-400">—</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-3">
+                      <p className="font-semibold">2100 - Hutang Usaha</p>
+                      <p className="text-[10px] text-slate-400">Biznet Networks</p>
+                    </td>
+                    <td className="px-4 py-3 text-right text-slate-400">—</td>
+                    <td className="px-4 py-3 text-right font-bold">8.200.000</td>
+                  </tr>
+                </tbody>
+                <tfoot className="bg-slate-50/50 border-t border-slate-100">
+                  <tr>
+                    <td className="px-4 py-3 font-bold text-slate-500">
+                      Total Balance
+                    </td>
+                    <td className="px-4 py-3 text-right font-black text-slate-900">
+                      8.200.000
+                    </td>
+                    <td className="px-4 py-3 text-right font-black text-slate-900">
+                      8.200.000
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </section>
+
+          {/* Manual Classification */}
+          <section>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">
+              Ubah Klasifikasi Manual
+            </label>
+            <DropdownMenu.Root>
               <DropdownMenu.Trigger asChild>
-                <button className="flex items-center gap-2 px-8 py-4 rounded-xl bg-[#000f43] text-white text-lg font-bold shadow-2xl shadow-[#000f43]/20 hover:scale-[1.02] active:scale-[0.98] transition-all focus:outline-none focus:ring-2 focus:ring-[#000f43]/25">
-                  <Upload className="w-6 h-6" />
-                  <span>Impor Dokumen</span>
+                <button className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 hover:border-slate-300 transition-colors text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                  <span>{selectedCoa}</span>
+                  <ChevronRight size={16} className="text-slate-400 rotate-90" />
                 </button>
               </DropdownMenu.Trigger>
-
               <DropdownMenu.Portal>
                 <DropdownMenu.Content
-                  align="end"
-                  sideOffset={12}
-                  className="z-50 min-w-[340px] overflow-hidden rounded-2xl border border-[#c5c5d3]/20 bg-white shadow-2xl shadow-[#000f43]/10"
+                  className="bg-white rounded-xl border border-slate-200 shadow-xl p-1 z-[200] min-w-[320px]"
+                  sideOffset={4}
                 >
-                  <div className="border-b border-[#c5c5d3]/10 px-4 py-3">
-                    <p className="text-sm font-bold text-[#000f43]">Pilih tipe dokumen</p>
-                    <p className="text-xs text-[#57657a]">Pilih format file yang ingin diimpor ke jurnal otomatis.</p>
-                  </div>
-
-                  <div className="p-2">
-                    {IMPORT_OPTIONS.map((option) => {
-                      const Icon = option.icon;
-
-                      return (
-                        <DropdownMenu.Item
-                          key={option.label}
-                          onSelect={(event) => {
-                            event.preventDefault();
-                            openFilePicker(option.accept);
-                          }}
-                          className="group cursor-pointer rounded-xl outline-none data-[highlighted]:bg-[#dae2fd] focus:bg-[#dae2fd] transition-colors"
-                        >
-                          <div className="flex items-start gap-3 rounded-xl px-3 py-2 transition-colors">
-                            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl group-hover:bg-[#000f43]/">
-                              <Icon className="h-5 w-5" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center justify-between gap-3">
-                                <p className="text-sm font-bold text-[#000f43] transition-colors">{option.label}</p>
-                                <span className="rounded-full bg-[#e2e7ff] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors group-hover:bg-white/20 group-data-[highlighted]:bg-white/20">
-                                  {option.label}
-                                </span>
-                              </div>
-                              <p className="mt-1 text-xs leading-relaxed text-[#57657a] transition-colors">
-                                {option.description}
-                              </p>
-                            </div>
-                          </div>
-                        </DropdownMenu.Item>
-                      );
-                    })}
-                  </div>
+                  {coaOptions.map((opt) => (
+                    <DropdownMenu.Item
+                      key={opt}
+                      onSelect={() => setSelectedCoa(opt)}
+                      className="flex items-center justify-between px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg cursor-pointer outline-none"
+                    >
+                      {opt}
+                      {selectedCoa === opt && (
+                        <Check size={14} className="text-indigo-600" />
+                      )}
+                    </DropdownMenu.Item>
+                  ))}
                 </DropdownMenu.Content>
               </DropdownMenu.Portal>
             </DropdownMenu.Root>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={selectedImportAccept}
-              className="hidden"
-              onChange={handleImportFileChange}
-            />
-          </div>
-        </header>
-
-        {/* Bento Grid */}
-        <div className="grid grid-cols-12 gap-6">
-          {/* Left — ledger */}
-          <section className="col-span-12 lg:col-span-8 flex flex-col gap-6">
-            <SummaryStats />
-            <LedgerTable />
+            <p className="text-[10px] text-slate-400 mt-2 italic">
+              Perubahan manual akan memicu proses pembelajaran AI untuk transaksi
+              serupa di masa depan.
+            </p>
           </section>
 
-          {/* Right — utilities */}
-          <section className="col-span-12 lg:col-span-4 flex flex-col gap-6">
-            <BankSync />
-            <ErpIntegration />
-            <AiChat />
+          {/* Audit Trail */}
+          <section className="pt-4 border-t border-slate-100">
+            <div className="flex items-center gap-2 text-slate-400">
+              <RefreshCw size={12} />
+              <p className="text-[10px] font-medium italic">
+                Terakhir diubah oleh{' '}
+                <span className="font-bold text-slate-500">System AI</span> pada
+                11 Agu 2023, 10:45 WIB
+              </p>
+            </div>
           </section>
         </div>
 
-        <ProcessingToast />
+        {/* Footer Actions */}
+        <div className="p-6 border-t border-slate-100 bg-white grid grid-cols-2 gap-3 flex-shrink-0">
+          <button
+            onClick={onClose}
+            className="col-span-1 py-3.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+          >
+            <X size={16} />
+            Tolak
+          </button>
+          <button className="col-span-1 py-3.5 px-4 rounded-xl bg-indigo-700 text-white font-bold text-sm shadow-lg hover:bg-indigo-800 transition-all flex items-center justify-center gap-2">
+            <Check size={16} />
+            Setujui
+          </button>
+          <button className="col-span-2 py-3 px-4 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-slate-500 font-bold text-[11px] uppercase tracking-widest hover:bg-slate-100 hover:border-slate-400 transition-all flex items-center justify-center gap-2">
+            <Bot size={14} />
+            Latih AI untuk Vendor Ini
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function JurnalOtomatis() {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<'all' | 'pending'>('all');
+
+  const filtered = transactions.filter((t) => {
+    const q = search.toLowerCase();
+    const matchSearch =
+      !q || t.vendor.toLowerCase().includes(q) || t.coa.toLowerCase().includes(q);
+    const matchTab = activeTab === 'all' || t.status === 'review';
+    return matchSearch && matchTab;
+  });
+
+  return (
+    <PageTransition>
+      <div className="flex min-h-screen bg-slate-50 font-sans">
+        
+
+        {/* Main */}
+        <main className="flex-1 p-8 lg:p-10 max-w-[1600px]">
+          {/* Header */}
+          <header className="flex justify-between items-end mb-10">
+            <div>
+              <div className="flex items-center gap-2 text-slate-400 text-sm font-medium mb-1">
+                <span>Fintech</span>
+                <ChevronRight size={14} />
+                <span className="text-indigo-700 font-bold">Jurnal Otomatis</span>
+              </div>
+              <h2 className="text-3xl font-extrabold text-indigo-900 tracking-tight">
+                Data Transaksi Cerdas
+              </h2>
+            </div>
+            <div className="flex items-center gap-3">
+              <button className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-all">
+                <FileText size={16} />
+                Ekspor
+              </button>
+              <button className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-indigo-700 text-white text-sm font-bold shadow-lg hover:bg-indigo-800 transition-all">
+                <Upload size={16} />
+                Impor Dokumen
+              </button>
+            </div>
+          </header>
+
+          {/* KPI Grid */}
+          <div className="grid grid-cols-4 gap-6 mb-10">
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 hover:-translate-y-0.5 transition-transform">
+              <div className="flex justify-between items-start mb-4">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                  <ArrowRight size={20} className="text-emerald-500 rotate-90" />
+                </div>
+                <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">
+                  +12.5%
+                </span>
+              </div>
+              <p className="text-slate-500 text-xs font-semibold mb-1">
+                Total Arus Masuk
+              </p>
+              <p className="text-2xl font-extrabold text-slate-900">Rp 2.84B</p>
+              <div className="mt-4 h-1 w-full bg-slate-50 rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 w-[70%]" />
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 hover:-translate-y-0.5 transition-transform">
+              <div className="flex justify-between items-start mb-4">
+                <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                  <ArrowRight size={20} className="text-red-500 -rotate-90" />
+                </div>
+                <span className="text-[10px] text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded-full">
+                  -5.2%
+                </span>
+              </div>
+              <p className="text-slate-500 text-xs font-semibold mb-1">
+                Total Arus Keluar
+              </p>
+              <p className="text-2xl font-extrabold text-slate-900">Rp 1.42B</p>
+              <div className="mt-4 h-1 w-full bg-slate-50 rounded-full overflow-hidden">
+                <div className="h-full bg-red-500 w-[40%]" />
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 hover:-translate-y-0.5 transition-transform">
+              <div className="flex justify-between items-start mb-4">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center">
+                  <Cloud size={20} className="text-indigo-700" />
+                </div>
+              </div>
+              <p className="text-slate-500 text-xs font-semibold mb-1">
+                Arus Kas Bersih
+              </p>
+              <p className="text-2xl font-extrabold text-slate-900">Rp 1.42B</p>
+              <p className="text-[10px] text-slate-400 font-medium mt-4 italic">
+                Surplus bulan ini
+              </p>
+            </div>
+
+            <div className="bg-indigo-700 text-white p-6 rounded-2xl hover:-translate-y-0.5 transition-transform shadow-xl shadow-indigo-200">
+              <div className="flex justify-between items-start mb-4">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                  <Bot size={20} className="text-white" />
+                </div>
+                <span className="text-[10px] text-white/80 font-bold border border-white/20 px-2 py-0.5 rounded-full">
+                  Insight
+                </span>
+              </div>
+              <p className="text-white/70 text-xs font-semibold mb-1">
+                Otomatisasi AI
+              </p>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-extrabold text-white">94.2%</span>
+                <span className="text-[10px] font-medium text-white/60">
+                  Efficiency
+                </span>
+              </div>
+              <p className="text-[10px] text-white/50 font-medium mt-4 tracking-tight">
+                88 Jurnal diproses otomatis
+              </p>
+            </div>
+          </div>
+
+          {/* Content Grid */}
+          <div className="grid grid-cols-12 gap-8">
+            {/* Table */}
+            <div className="col-span-12 lg:col-span-8 flex flex-col space-y-6">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+                {/* Table Header */}
+                <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-bold text-indigo-900 text-lg">
+                      Daftar Jurnal
+                    </h3>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => setActiveTab('all')}
+                        className={`px-2 py-1 rounded text-[10px] font-bold transition-colors ${
+                          activeTab === 'all'
+                            ? 'bg-slate-100 text-slate-600'
+                            : 'text-slate-400 hover:bg-slate-50'
+                        }`}
+                      >
+                        Semua
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('pending')}
+                        className={`px-2 py-1 rounded text-[10px] font-bold transition-colors ${
+                          activeTab === 'pending'
+                            ? 'bg-amber-50 text-amber-600'
+                            : 'text-slate-400 hover:bg-slate-50'
+                        }`}
+                      >
+                        Pending
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <div className="relative">
+                      <input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-100 w-56 transition-all outline-none"
+                        placeholder="Cari vendor atau no. akun..."
+                      />
+                      <Search
+                        size={15}
+                        className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+                      />
+                    </div>
+                    <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors">
+                      <Filter size={14} />
+                      Filter
+                    </button>
+                  </div>
+                </div>
+
+                {/* Table */}
+                <div className="h-[750px] overflow-y-auto">
+                  <table className="w-full text-left border-collapse table-fixed min-w-[800px]">
+                    <thead>
+                      <tr className="bg-slate-50 sticky top-0 z-10">
+                        <th className="w-12 px-6 py-4">
+                          <input
+                            type="checkbox"
+                            className="rounded border-slate-300 w-4 h-4"
+                          />
+                        </th>
+                        {['Tanggal', 'Vendor', 'Jumlah', 'Saran AI (COA)', 'Score', 'Status'].map(
+                          (h) => (
+                            <th
+                              key={h}
+                              className="px-4 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest"
+                            >
+                              {h}
+                            </th>
+                          )
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filtered.map((t) => (
+                        <tr
+                          key={t.id}
+                          onClick={() => setDrawerOpen(true)}
+                          className="group hover:bg-slate-50/50 transition-all cursor-pointer"
+                        >
+                          <td className="px-6 py-4">
+                            <input
+                              type="checkbox"
+                              className="rounded border-slate-300 w-4 h-4"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </td>
+                          <td className="px-4 py-4">
+                            <p className="font-bold text-indigo-800 text-sm">
+                              {t.date}
+                            </p>
+                            <p className="text-[10px] text-slate-400 font-medium">
+                              {t.time}
+                            </p>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-600 flex-shrink-0">
+                                {t.initials}
+                              </div>
+                              <p className="font-bold text-slate-900 text-sm truncate">
+                                {t.vendor}
+                              </p>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <p className="font-bold text-slate-900 text-sm">
+                              {t.amount}
+                            </p>
+                            <p className="text-[9px] text-slate-400 uppercase font-bold">
+                              IDR
+                            </p>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center justify-center">
+                              <CoaBadge coa={t.coa} status={t.status} />
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-center">
+                            <span
+                              className={`text-xs font-bold ${
+                                t.status === 'verified'
+                                  ? 'text-emerald-500'
+                                  : 'text-amber-500'
+                              }`}
+                            >
+                              {t.score}%
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <StatusBadge status={t.status} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="px-6 py-4 bg-slate-50 flex justify-between items-center rounded-b-2xl">
+                  <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">
+                    Total {filtered.length} transaksi dalam daftar jurnal
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors">
+                      <ChevronLeft size={14} className="text-slate-500" />
+                    </button>
+                    <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors">
+                      <ChevronRight size={14} className="text-slate-500" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Sidebar */}
+            <div className="col-span-12 lg:col-span-4 flex flex-col space-y-6">
+              {/* Integration Status */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-bold text-indigo-900">
+                    Workspace Terintegrasi
+                  </h3>
+                  <Link2 size={18} className="text-slate-300" />
+                </div>
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/50">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex gap-3">
+                        <div className="w-10 h-10 bg-white rounded-lg border border-slate-100 flex items-center justify-center font-bold text-[10px] text-indigo-700">
+                          BCA
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">
+                            KlikBCA Bisnis
+                          </p>
+                          <p className="text-[10px] text-emerald-500 font-medium">
+                            Aktif • 1 jam lalu
+                          </p>
+                        </div>
+                      </div>
+                      <Check size={16} className="text-emerald-500" />
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                    <div className="flex gap-3">
+                      <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center">
+                        <Cloud size={18} className="text-indigo-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-900">
+                          Accurate ERP
+                        </p>
+                        <span className="inline-block px-1.5 py-0.5 bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase rounded mt-0.5">
+                          Connected
+                        </span>
+                      </div>
+                    </div>
+                    <button className="w-8 h-8 rounded-full hover:bg-slate-200 flex items-center justify-center transition-colors">
+                      <Settings size={16} className="text-slate-400" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Suggestions */}
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col min-h-[420px]">
+                <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-indigo-700 rounded-lg flex items-center justify-center">
+                      <Bot size={16} className="text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-indigo-900 text-xs tracking-tight uppercase">
+                        Rekomendasi AI
+                      </h3>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                        4 Saran Menunggu
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-white">
+                  <button className="w-full py-2 px-3 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 rounded-lg text-indigo-700 text-[10px] font-bold uppercase tracking-widest transition-colors mb-2">
+                    TERIMA SEMUA (4)
+                  </button>
+                  <div className="space-y-3">
+                    {aiSuggestions.map((s) => (
+                      <div
+                        key={s.vendor}
+                        className="p-3 rounded-xl border border-slate-100 hover:border-indigo-100 transition-all bg-white"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h4 className="text-xs font-bold text-slate-900">
+                              {s.vendor}
+                            </h4>
+                            <p className="text-[10px] font-semibold text-indigo-700 mt-0.5">
+                              {s.coa}
+                            </p>
+                          </div>
+                          <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-600 text-[9px] font-bold rounded">
+                            {s.confidence}% Confidence
+                          </span>
+                        </div>
+                        <p className="text-xs font-black text-slate-700 mb-3">
+                          {s.amount}
+                        </p>
+                        <div className="flex gap-2">
+                          <button className="flex-1 py-1.5 rounded-md border border-slate-200 text-[10px] font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+                            Abaikan
+                          </button>
+                          <button className="flex-1 py-1.5 rounded-md bg-indigo-700 text-white text-[10px] font-bold hover:bg-indigo-800 transition-all shadow-sm">
+                            Setujui
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        {/* Detail Drawer */}
+        <DetailDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+
+        {/* Toast */}
+        <div className="fixed bottom-6 right-6 z-20 bg-slate-900 text-white rounded-2xl p-4 shadow-2xl flex items-center gap-4 border border-white/10">
+          <div className="w-9 h-9 bg-indigo-500/20 rounded-full flex items-center justify-center">
+            <RefreshCw size={16} className="text-indigo-300 animate-spin" />
+          </div>
+          <div className="pr-4">
+            <p className="font-bold text-xs">Pemrosesan Cerdas Aktif</p>
+            <p className="text-[10px] text-white/60">
+              3 invoice baru sedang dianalisis...
+            </p>
+          </div>
+          <button className="p-1 hover:bg-white/10 rounded-lg">
+            <X size={14} className="text-white/40" />
+          </button>
+        </div>
       </div>
     </PageTransition>
   );
@@ -551,5 +766,5 @@ export const Route = createFileRoute('/finance')({
   beforeLoad: async () => {
     await requireAuthBeforeLoad();
   },
-  component: JurnalOtomatisPage,
+  component: JurnalOtomatis,
 });
