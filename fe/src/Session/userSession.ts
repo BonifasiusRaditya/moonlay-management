@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { AuthUser } from '@/types/auth_user';
 import { apiClient } from '@/api/client';
+import Cookies from 'js-cookie';
 
 interface UserStore {
   user: AuthUser | null;
@@ -13,7 +14,9 @@ export const useUserStore = create<UserStore>((set) => ({
   setUser: (user) => set({ user }),
   clearUser: () => {
     set({ user: null });
-  },
+    Cookies.remove('token', { path: '/' });
+    window.location.href = '/login';
+  }
 }));
 
 type MeResponse = {

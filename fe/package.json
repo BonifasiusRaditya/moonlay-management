@@ -19,6 +19,7 @@
     "clsx": "^2.1.0",
     "dayjs": "^1.11.10",
     "iconoir-react": "^7.11.0",
+    "js-cookie": "^3.0.5",
     "lucide-react": "^0.555.0",
     "qr-scanner": "^1.4.2",
     "react": "^18.2.0",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.3.2",
+    "@types/js-cookie": "^3.0.6",
     "@types/node": "^20.10.5",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",

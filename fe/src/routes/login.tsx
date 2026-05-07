@@ -1,11 +1,10 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { login } from '@/api/auth';
 import { loginSchema, type LoginInput } from '@/schemas/auth';
 import { useUserStore } from '@/Session/userSession';
 import { useNotificationStore } from '@/Session/notificationSession';
-import { ensureAuthenticatedUser } from '@/Session/userSession';
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -15,19 +14,6 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState<LoginInput>({ email: '', password: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    const verifySession = async () => {
-      const sessionUser = user ?? (await ensureAuthenticatedUser());
-      if (!sessionUser) return;
-      if (sessionUser.must_change_password) {
-        navigate({ to: '/force-change-password', replace: true });
-      } else {
-        navigate({ to: '/dashboard', replace: true });
-      }
-    };
-    verifySession();
-  }, [user, navigate]);
 
   const loginMutation = useMutation({
     mutationFn: login,
