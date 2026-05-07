@@ -1,94 +1,70 @@
-create extension if not exists "pgcrypto"; 
+create table clients (
+  id serial primary key,
+  name varchar(255) not null,
+  code varchar(50) not null unique,
+  address text,
+  phone varchar(50),
+  email varchar(100),
+  country varchar(100),
+  created_at timestamptz not null default now(),
+  created_by integer,
+  updated_at timestamptz not null default now(),
+  updated_by integer,
+  deleted_at timestamptz
+);
+
+create table branches (
+  id serial primary key,
+  client_id integer not null references clients(id) on delete cascade,
+  name varchar(255) not null,
+  code varchar(50) not null,
+  address text,
+  city varchar(100),
+  country varchar(100),
+  timezone varchar(100),
+  created_at timestamptz not null default now(),
+  created_by integer,
+  updated_at timestamptz not null default now(),
+  updated_by integer,
+  deleted_at timestamptz
+);
 
 create table users (
-  id uuid primary key default gen_random_uuid(),
-  name varchar(100) not null,
-  email varchar(150) not null,
-  role varchar(20),
-  created_at timestamp
+  id serial primary key,
+  client_id integer not null references clients(id) on delete cascade,
+  branch_id integer references branches(id) on delete set null,
+  name varchar(255) not null,
+  email varchar(100) not null unique,
+  password_hash varchar(255) not null,
+  role varchar(150) not null,
+  last_login_at timestamptz,
+  must_change_password boolean not null default false,
+  created_at timestamptz not null default now(),
+  created_by integer,
+  updated_at timestamptz not null default now(),
+  updated_by integer,
+  deleted_at timestamptz
 );
 
--- bank_accounts
-create table bank_accounts (
-  id uuid primary key default gen_random_uuid(),
-  bank_name varchar(50) not null,
-  account_number varchar(30) not null,
-  account_name varchar(100) not null,
-  status varchar(20) default 'active',
-  last_synced_at timestamp,
-  created_at timestamp
+create table password_reset_tokens (
+  id serial primary key,
+  user_id integer not null references users(id) on delete cascade,
+  token varchar(255) not null unique,
+  expires_at timestamptz not null,
+  used boolean not null default false,
+  created_at timestamptz not null default now()
 );
 
--- documents
-create table documents (
-  id uuid primary key default gen_random_uuid(),
-  file_name varchar(255) not null,
-  file_type varchar(20) not null,
-  file_url varchar(500) not null,
-  parse_status varchar(20) not null,
-  uploaded_by uuid references users(id) on delete set null,
-  uploaded_at timestamp
-);
+create index clients_deleted_at_idx on clients(deleted_at);
+create index branches_client_id_idx on branches(client_id);
+create index branches_deleted_at_idx on branches(deleted_at);
+create index users_client_id_idx on users(client_id);
+create index users_branch_id_idx on users(branch_id);
+create index users_email_idx on users(email);
+create index users_deleted_at_idx on users(deleted_at);
+create index password_reset_tokens_user_id_idx on password_reset_tokens(user_id);
+create index password_reset_tokens_token_idx on password_reset_tokens(token);
+create index password_reset_tokens_expires_at_idx on password_reset_tokens(expires_at);
 
--- chart_of_accounts
-create table chart_of_accounts (
-  id uuid primary key default gen_random_uuid(),
-  code varchar(20) unique not null,
-  name varchar(150),
-  account_type varchar(20) not null,
-  is_active boolean default true,
-  created_at timestamp
-);
-
--- transactions
-create table transactions (
-  id uuid primary key default gen_random_uuid(),
-  document_id uuid references documents(id) on delete set null,
-  transaction_date date not null,
-  description text,
-  amount decimal(18, 2) not null,
-  direction varchar(10),
-  raw_category varchar(100),
-  pipeline_status varchar(20),
-  created_at timestamp
-);
-
--- ai_classifications
-create table llm_classifications (
-  id uuid primary key default gen_random_uuid(),
-  transaction_id uuid not null references transactions(id) on delete cascade,
-  suggested_coa_id uuid not null references chart_of_accounts(id) on delete restrict,
-  confidence_score decimal(4, 2),
-  reasoning text,
-  is_anomaly boolean default false,
-  classified_at timestamp
-);
-
--- journal_entries
-create table journal_entries (
-  id uuid primary key default gen_random_uuid(),
-  transaction_id uuid not null references transactions(id) on delete restrict,
-  final_coa_id uuid not null references chart_of_accounts(id) on delete restrict,
-  debit_amount decimal(18, 2),
-  credit_amount decimal(18, 2),
-  is_auto_journaled boolean default false,
-  journaled_at timestamp
-);
-
--- approvals
-create table approvals (
-  id uuid primary key default gen_random_uuid(),
-  transaction_id uuid not null references transactions(id) on delete restrict,
-  reviewed_by uuid references users(id) on delete set null,
-  action varchar(20),
-  override_coa_id uuid references chart_of_accounts(id) on delete set null,
-  note text,
-  reviewed_at timestamp
-);
-
--- indexes for common queries
-create index idx_transactions_status on transactions(pipeline_status);
-create index idx_transactions_date on transactions(transaction_date);
-create index idx_llm_classifications_transaction on llm_classifications(transaction_id);
-create index idx_approvals_transaction on approvals(transaction_id);
-create index idx_journal_entries_transaction on journal_entries(transaction_id);
+insert into clients (name, code) values ('Default Client', 'DEFAULT');
+insert into users (client_id, name, email, password_hash, role) values (1, 'Admin User', 'superadmin@example.com', '$2a$10$8.QsSdq/851YbC2zOPGOau7M6MgXiSIqMeZms0kFSAwcERkx7qOkW', 'superadmin');

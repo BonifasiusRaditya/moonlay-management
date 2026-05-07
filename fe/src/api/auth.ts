@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { loginSchema, type LoginInput } from '@/schemas/auth';
+import { loginSchema, registerSchema, type LoginInput, type RegisterInput } from '@/schemas/auth';
 import type { LoginResponse, ApiLoginResponse } from '@/types/login_response';
 import type { AuthUser } from '@/types/auth_user';
 
@@ -48,6 +48,50 @@ export async function login(credentials: LoginInput): Promise<LoginResponse> {
   } catch (error: any) {
     // Log the error for debugging
     console.error('Login error:', error);
+    console.error('Error response:', error.response?.data);
+    throw error;
+  }
+}
+
+export async function register(credentials: RegisterInput): Promise<LoginResponse> {
+  const validated = registerSchema.parse(credentials);
+
+  try {
+    const response = await apiClient.post<ApiLoginResponse | LoginResponse>('/auth/register', validated);
+
+    let responseData: LoginResponse;
+
+    if ('data' in response.data && typeof response.data.data === 'object' && response.data.data !== null) {
+      const wrapped = response.data as ApiLoginResponse;
+      const user: AuthUser = {
+        id: wrapped.data.user.id,
+        name: wrapped.data.user.name,
+        email: wrapped.data.user.email,
+        role: wrapped.data.user.role,
+        client_id: wrapped.data.user.client_id,
+        branch_id: wrapped.data.user.branch_id,
+        must_change_password: wrapped.data.user.must_change_password,
+        permissions: wrapped.data.user.permissions || [],
+      };
+      responseData = {
+        token: wrapped.data.token,
+        user,
+      };
+    } else {
+      const unwrapped = response.data as LoginResponse;
+      responseData = {
+        token: unwrapped.token,
+        user: {
+          ...unwrapped.user,
+          must_change_password: (unwrapped.user as any).must_change_password ?? unwrapped.user.must_change_password,
+          permissions: unwrapped.user.permissions || [],
+        },
+      };
+    }
+
+    return responseData;
+  } catch (error: any) {
+    console.error('Register error:', error);
     console.error('Error response:', error.response?.data);
     throw error;
   }

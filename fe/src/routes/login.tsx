@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState, useEffect, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { login } from '@/api/auth';
@@ -453,9 +453,9 @@ function LoginPage() {
             <div style={{ marginTop: 24, textAlign: 'center' }}>
               <p style={{ fontSize: 14, fontWeight: 500, color: '#444652' }}>
                 Belum memiliki akun?{' '}
-                <a href="#" style={{ marginLeft: 4, color: '#002072', fontWeight: 800, textDecoration: 'underline', textUnderlineOffset: 4 }}>
-                  Hubungi Tim Sales
-                </a>
+                <Link to="/register" style={{ marginLeft: 4, color: '#002072', fontWeight: 800, textDecoration: 'underline', textUnderlineOffset: 4 }}>
+                  Daftar di sini
+                </Link>
               </p>
             </div>
           </div>

@@ -22,7 +22,7 @@ import {
   Upload,
   X,
 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useRef, useState, type ChangeEvent } from 'react';
 
 const transactions = [
   { id: 1, date: '12 Agu 23', time: '14:20 WIB', vendor: 'PLN Persero', initials: 'PL', amount: '12.450.000', coa: '6100 - Beban Listrik', score: 98, status: 'verified' },
@@ -353,6 +353,43 @@ function JurnalOtomatis() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'pending'>('all');
+  const [isUploading, setIsUploading] = useState(false);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleImportClick = () => {
+    uploadInputRef.current?.click();
+  };
+
+  const handleUploadDocument = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(
+        'http://localhost:5678/webhook-test/import_document',
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Upload gagal');
+      }
+
+      alert('Dokumen berhasil diunggah ke webhook n8n.');
+    } catch (error) {
+      console.error('Gagal upload dokumen:', error);
+      alert('Upload dokumen gagal. Silakan coba lagi.');
+    } finally {
+      event.target.value = '';
+      setIsUploading(false);
+    }
+  };
 
   const filtered = transactions.filter((t) => {
     const q = search.toLowerCase();
@@ -382,13 +419,23 @@ function JurnalOtomatis() {
               </h2>
             </div>
             <div className="flex items-center gap-3">
+              <input
+                ref={uploadInputRef}
+                type="file"
+                className="hidden"
+                onChange={handleUploadDocument}
+              />
               <button className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-all">
                 <FileText size={16} />
                 Ekspor
               </button>
-              <button className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-indigo-700 text-white text-sm font-bold shadow-lg hover:bg-indigo-800 transition-all">
+              <button
+                onClick={handleImportClick}
+                disabled={isUploading}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-indigo-700 text-white text-sm font-bold shadow-lg hover:bg-indigo-800 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+              >
                 <Upload size={16} />
-                Impor Dokumen
+                {isUploading ? 'Mengunggah...' : 'Impor Dokumen'}
               </button>
             </div>
           </header>

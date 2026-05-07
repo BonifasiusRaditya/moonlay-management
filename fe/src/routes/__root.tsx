@@ -11,7 +11,7 @@ export const Route = createRootRoute({
 
 function RootComponent() {
   const router = useRouterState();
-  const isAuthLightPage = router.location.pathname === '/login' || router.location.pathname === '/force-change-password';
+  const isAuthLightPage = router.location.pathname === '/login' || router.location.pathname === '/force-change-password' || router.location.pathname === '/register';
   const navigate = useNavigate();
   const { user } = useUserStore();
   useAutoLogoutOnIdle();

@@ -93,6 +93,10 @@ func (r *AuthRepository) PermissionsForUser(userID uint) ([]string, error) {
 		Order("p.key ASC").
 		Scan(&rows).Error
 	if err != nil {
+		// Allow login to proceed when RBAC tables are not present in a simplified schema.
+		if strings.Contains(strings.ToLower(err.Error()), "relation \"roles\" does not exist") || strings.Contains(strings.ToLower(err.Error()), "sqlstate 42p01") {
+			return []string{}, nil
+		}
 		return nil, err
 	}
 

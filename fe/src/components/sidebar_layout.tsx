@@ -25,7 +25,6 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
   const currentPath = router.location.pathname;
   const isDashboard = currentPath === '/dashboard' || currentPath.startsWith('/dashboard/');
   const isFinance = currentPath === '/finance' || currentPath.startsWith('/finance/');
-  const [adminExpanded, setAdminExpanded] = useState(true);
 
   const navItemBase = 'flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors';
 
