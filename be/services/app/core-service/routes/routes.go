@@ -36,6 +36,7 @@ func ConfigureRouter(e *echo.Echo, serviceName string, db *gorm.DB) {
 	authUsecase := usecases.NewAuthUsecase(authRepo)
 	authController := controllers.NewAuthController(authUsecase)
 	authMW := middleware.NewAuthMiddleware(authUsecase.TokenSecret())
+	financeController := controllers.NewFinanceController(usecases.NewFinanceUsecase())
 	clientController := controllers.NewClientController(usecases.NewClientUsecase(repositories.NewClientRepository(db), repositories.NewUserRepository(db), repositories.NewRBACRepository(db)))
 	branchController := controllers.NewBranchController(usecases.NewBranchUsecase(repositories.NewBranchRepository(db), repositories.NewClientRepository(db)))
 	userController := controllers.NewUserController(usecases.NewUserUsecase(repositories.NewUserRepository(db), repositories.NewClientRepository(db), repositories.NewBranchRepository(db)))
@@ -47,6 +48,7 @@ func ConfigureRouter(e *echo.Echo, serviceName string, db *gorm.DB) {
 	reportController := controllers.NewReportController(usecases.NewReportUsecase())
 
 	v1.POST("/auth/login", authController.Login)
+	v1.POST("/auth/logout", authController.Logout)
 	v1.POST("/auth/register", authController.Register, authMW.RequireAnyRole("superadmin", "admin"))
 	v1.GET("/auth/me", authController.Me, authMW.RequireAuth())
 	v1.POST("/auth/refresh-token", authController.RefreshToken)
@@ -120,4 +122,7 @@ func ConfigureRouter(e *echo.Echo, serviceName string, db *gorm.DB) {
 	reports.GET("/assets/export", reportController.ExportAssets)
 	reports.GET("/assignments/export", reportController.ExportAssignments)
 	reports.GET("/devices/export", reportController.ExportDevices)
+
+	finance := v1.Group("/finance", authMW.RequireAuth())
+	finance.POST("/import-document", financeController.ImportDocument)
 }

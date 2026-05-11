@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import type { AuthUser } from '@/types/auth_user';
 import { apiClient } from '@/api/client';
-import Cookies from 'js-cookie';
+import Cookie from 'js-cookie';
+import api from './axios';
 
 interface UserStore {
   user: AuthUser | null;
@@ -12,11 +13,15 @@ interface UserStore {
 export const useUserStore = create<UserStore>((set) => ({
   user: null,
   setUser: (user) => set({ user }),
-  clearUser: () => {
-    set({ user: null });
-    Cookies.remove('token', { path: '/' });
-    window.location.href = '/login';
-  }
+  clearUser: async () => {
+    try {
+      await api.post('/auth/logout');
+      set({ user: null });
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  },
 }));
 
 type MeResponse = {

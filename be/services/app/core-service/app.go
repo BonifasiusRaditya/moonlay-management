@@ -25,7 +25,7 @@ type Main struct {
 	cfg      *config.Config
 	database Database
 	router   *echo.Echo
-}
+} 
 
 type Database struct {
 	Postgres *gorm.DB

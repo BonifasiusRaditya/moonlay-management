@@ -38,7 +38,7 @@ go mod download
 
 2. Configure environment
 
-Create `.env` for local development. Configure database, JWT secrets, and SMTP settings for auth and notification flows.
+Create `.env` for local development. Configure database, JWT secrets, SMTP settings for auth and notification flows, and `N8N_IMPORT_DOCUMENT_URL` for finance document uploads.
 
 3. Run migrations (golang-migrate via Cobra)
 

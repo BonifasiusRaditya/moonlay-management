@@ -3,20 +3,16 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { PageTransition } from '@/components/page_transition';
 import { requireAuthBeforeLoad } from '@/utils/route_guards';
 import {
-  AlertTriangle,
   ArrowRight,
   Bot,
-  Building2,
   Check,
   ChevronLeft,
   ChevronRight,
   Cloud,
   Filter,
   Link2,
-  Pencil,
   RefreshCw,
   Search,
-  Send,
   Settings,
   FileText,
   Upload,
@@ -349,15 +345,18 @@ function DetailDrawer({
   );
 }
 
+// api from env
+
 function JurnalOtomatis() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'pending'>('all');
   const [isUploading, setIsUploading] = useState(false);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
 
   const handleImportClick = () => {
-    uploadInputRef.current?.click();
+    uploadInputRef.current?.click(); 
   };
 
   const handleUploadDocument = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -369,19 +368,17 @@ function JurnalOtomatis() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(
-        'http://localhost:5678/webhook-test/import_document',
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
+      const response = await fetch(`${apiBaseUrl}/finance/import-document`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
 
       if (!response.ok) {
         throw new Error('Upload gagal');
       }
 
-      alert('Dokumen berhasil diunggah ke webhook n8n.');
+      alert('Dokumen berhasil diunggah melalui backend ke n8n.');
     } catch (error) {
       console.error('Gagal upload dokumen:', error);
       alert('Upload dokumen gagal. Silakan coba lagi.');
