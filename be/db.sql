@@ -1,70 +1,70 @@
-create table clients (
-  id serial primary key,
-  name varchar(255) not null,
-  code varchar(50) not null unique,
-  address text,
-  phone varchar(50),
-  email varchar(100),
-  country varchar(100),
-  created_at timestamptz not null default now(),
-  created_by integer,
-  updated_at timestamptz not null default now(),
-  updated_by integer,
-  deleted_at timestamptz
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE TABLE IF NOT EXISTS users (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name varchar NOT NULL,
+  email varchar NOT NULL UNIQUE,
+  password varchar NOT NULL,
+  role varchar,
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 
-create table branches (
-  id serial primary key,
-  client_id integer not null references clients(id) on delete cascade,
-  name varchar(255) not null,
-  code varchar(50) not null,
-  address text,
-  city varchar(100),
-  country varchar(100),
-  timezone varchar(100),
-  created_at timestamptz not null default now(),
-  created_by integer,
-  updated_at timestamptz not null default now(),
-  updated_by integer,
-  deleted_at timestamptz
+CREATE TABLE IF NOT EXISTS documents (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  file_name varchar,
+  file_type varchar,
+  file_url varchar,
+  uploaded_by integer REFERENCES users(id) ON DELETE SET NULL,
+  uploaded_at timestamptz NOT NULL DEFAULT now()
 );
 
-create table users (
-  id serial primary key,
-  client_id integer not null references clients(id) on delete cascade,
-  branch_id integer references branches(id) on delete set null,
-  name varchar(255) not null,
-  email varchar(100) not null unique,
-  password_hash varchar(255) not null,
-  role varchar(150) not null,
-  last_login_at timestamptz,
-  must_change_password boolean not null default false,
-  created_at timestamptz not null default now(),
-  created_by integer,
-  updated_at timestamptz not null default now(),
-  updated_by integer,
-  deleted_at timestamptz
+CREATE TABLE IF NOT EXISTS transactions_business (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  document_id uuid REFERENCES documents(id) ON DELETE SET NULL,
+  invoice_number varchar,
+  transaction_date date NOT NULL,
+  vendor varchar NOT NULL,
+  amount numeric(18,2) NOT NULL,
+  coa varchar NOT NULL,
+  score_ai real,
+  status varchar,
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 
-create table password_reset_tokens (
-  id serial primary key,
-  user_id integer not null references users(id) on delete cascade,
-  token varchar(255) not null unique,
-  expires_at timestamptz not null,
-  used boolean not null default false,
-  created_at timestamptz not null default now()
+CREATE TABLE IF NOT EXISTS business_ai_confidence (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  transaction_id uuid NOT NULL REFERENCES transactions_business(id) ON DELETE CASCADE,
+  confidence_score real,
+  confidence_level varchar,
+  coa_recommendation varchar,
+  history_match_score real,
+  history_match_weight real,
+  history_match_reason text,
+  vendor_match_score real,
+  vendor_match_weight real,
+  vendor_match_reason text,
+  amount_pattern_score real,
+  amount_pattern_weight real,
+  amount_pattern_historical_average numeric(18,2),
+  amount_pattern_difference_percentage real,
+  amount_pattern_reason text,
+  keyword_match_score real,
+  keyword_match_weight real,
+  keyword_match_reason text,
+  frequency_pattern_score real,
+  frequency_pattern_weight real,
+  frequency_pattern_reason text,
+  summary_most_similar_transaction varchar,
+  summary_risk_level varchar,
+  summary_recommendation text,
+  summary_invoice_type_prediction varchar,
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 
-create index clients_deleted_at_idx on clients(deleted_at);
-create index branches_client_id_idx on branches(client_id);
-create index branches_deleted_at_idx on branches(deleted_at);
-create index users_client_id_idx on users(client_id);
-create index users_branch_id_idx on users(branch_id);
-create index users_email_idx on users(email);
-create index users_deleted_at_idx on users(deleted_at);
-create index password_reset_tokens_user_id_idx on password_reset_tokens(user_id);
-create index password_reset_tokens_token_idx on password_reset_tokens(token);
-create index password_reset_tokens_expires_at_idx on password_reset_tokens(expires_at);
+-- see all table exist
+select table_name from information_schema.tables where table_schema = 'public';
+CREATE INDEX documents_uploaded_by_idx ON documents(uploaded_by);
+CREATE INDEX transactions_business_transaction_date_idx ON transactions_business(transaction_date);
+CREATE INDEX business_ai_confidence_transaction_id_idx ON business_ai_confidence(transaction_id); 
 
-insert into clients (name, code) values ('Default Client', 'DEFAULT');
-insert into users (client_id, name, email, password_hash, role) values (1, 'Admin User', 'superadmin@example.com', '$2a$10$8.QsSdq/851YbC2zOPGOau7M6MgXiSIqMeZms0kFSAwcERkx7qOkW', 'superadmin');
+-- End of schema

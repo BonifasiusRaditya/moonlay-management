@@ -7,75 +7,54 @@ Table users {
   created_at timestamp
 }
 
-Table bank_accounts {
-  id uuid [primary key]
-  bank_name varchar [note: 'BCA, Mandiri, BNI, etc']
-  account_number varchar
-  account_name varchar
-  status varchar [note: 'connected | disconnected']
-  last_synced_at timestamp
-  created_at timestamp
-}
-
 Table documents {
   id uuid [primary key]
   file_name varchar
   file_type varchar // pdf, csv, xls
   file_url varchar // connect ke drive
-  parse_status varchar // uploading, parsing, parsed, error
   uploaded_by uuid [ref: > users.id]
   uploaded_at timestamp
 }
 
-Table chart_of_accounts {
-  id uuid [primary key]
-  code varchar [unique, not null] // contoh 7101 untuk Beban Gaji dsb
-  name varchar [note: 'e.g. Beban Operasional']
-  account_type varchar [note: 'asset | liability | equity | revenue | expense']
-  is_active boolean [default: true]
-  created_at timestamp
-}
-
-Table transactions {
+Table transactions_business {
   id uuid [primary key]
   document_id uuid [ref: > documents.id]
   invoice_number varchar // no faktur
   transaction_date date [not null]
-  
-  description text
+  vendor varchar [not null]
   amount decimal [not null]
-  direction varchar // debit or credit
-  raw_category varchar 
-  pipeline_status varchar // new, in_review, approved, rejected
+  coa varchar [not null]
+  score_ai float
+  status varchar [note: 'pending | approved | rejected']
   created_at timestamp
 }
 
-Table llm_classifications {
+Table business_ai_confidence {
   id uuid [primary key]
-  transaction_id uuid [not null, ref: > transactions.id]
-  suggested_coa_id uuid [not null, ref: > chart_of_accounts.id]
-  confidence_score decimal // biner 0 dan 1
-  reasoning text // penjelasan kenapa transaksi dikategorikan ke coa tertentu
-  is_anomaly boolean [default: false]
-  classified_at timestamp
-}
-
-Table journal_entries {
-  id uuid [primary key]
-  transaction_id uuid [not null, ref: > transactions.id]
-  final_coa_id uuid [not null, ref: > chart_of_accounts.id]
-  debit_amount decimal
-  credit_amount decimal
-  is_auto_journaled boolean [default: false]
-  journaled_at timestamp
-}
-
-Table approvals {
-  id uuid [primary key]
-  transaction_id uuid [not null, ref: > transactions.id]
-  reviewed_by uuid [ref: > users.id]
-  action varchar // approved, rejected, needs_info
-  override_coa_id uuid [ref: > chart_of_accounts.id]
-  note text
-  reviewed_at timestamp
+  transaction_id uuid [not null, ref: > transactions_business.id]
+  confidence_score float
+  confidence_level varchar
+  coa_recommendation varchar
+  history_match_score float
+  history_match_weight float
+  history_match_reason text
+  vendor_match_score float
+  vendor_match_weight float
+  vendor_match_reason text
+  amount_pattern_score float
+  amount_pattern_weight float
+  amount_pattern_historical_average decimal
+  amount_pattern_difference_percentage float
+  amount_pattern_reason text
+  keyword_match_score float
+  keyword_match_weight float
+  keyword_match_reason text
+  frequency_pattern_score float
+  frequency_pattern_weight float
+  frequency_pattern_reason text
+  summary_most_similar_transaction varchar
+  summary_risk_level varchar
+  summary_recommendation text
+  summary_invoice_type_prediction varchar
+  created_at timestamp
 }
