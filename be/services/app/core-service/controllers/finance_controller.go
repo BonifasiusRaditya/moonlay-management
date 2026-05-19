@@ -37,7 +37,7 @@ func (ctl *FinanceController) ImportDocument(c echo.Context) error {
 
 	// Validate file extension
 	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
-	if ext != ".pdf" && ext != ".csv" && ext != ".xlsx" {
+	if ext != ".pdf" && ext != ".csv" && ext != ".xls" {
 		return echo.NewHTTPError(http.StatusBadRequest, "only PDF, CSV, and XLSX files are allowed")
 	}
 

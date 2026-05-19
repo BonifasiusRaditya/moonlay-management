@@ -347,7 +347,7 @@ function DetailDrawer({
 
 // api from env
 
-function JurnalOtomatis() {
+function TransaksiBankPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'pending'>('all');
@@ -409,10 +409,10 @@ function JurnalOtomatis() {
               <div className="flex items-center gap-2 text-slate-400 text-sm font-medium mb-1">
                 <span>Fintech</span>
                 <ChevronRight size={14} />
-                <span className="text-indigo-700 font-bold">Jurnal Otomatis</span>
+                <span className="text-indigo-700 font-bold">Transaksi Bisnis</span>
               </div>
               <h2 className="text-3xl font-extrabold text-indigo-900 tracking-tight">
-                Data Transaksi Cerdas
+                Transaksi Bisnis
               </h2>
             </div>
             <div className="flex items-center gap-3">
@@ -806,9 +806,9 @@ function JurnalOtomatis() {
   );
 }
 
-export const Route = createFileRoute('/finance')({
+export const Route = createFileRoute('/bank')({
   beforeLoad: async () => {
     await requireAuthBeforeLoad();
   },
-  component: JurnalOtomatis,
+  component: TransaksiBankPage,
 });

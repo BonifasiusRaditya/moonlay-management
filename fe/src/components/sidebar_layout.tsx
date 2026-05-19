@@ -1,25 +1,11 @@
 import { Link, useRouterState } from '@tanstack/react-router';
 import { Navbar } from '@/components/navbar';
-
-interface SidebarLayoutProps {
-  children: React.ReactNode;
-}
 import {
-  BadgeHelp,
-  Bell,
-  Building2,
-  ChartNoAxesColumn,
   FilePlus2,
-  FileText,
-  Key,
   Landmark,
   LayoutDashboard,
-  Search,
-  ShieldCheck,
-  UserCircle,
   Users,
 } from 'lucide-react';
-import { useState } from 'react';
 
 interface SidebarLayoutProps {
   children: React.ReactNode;
@@ -29,7 +15,8 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
   const router = useRouterState();
   const currentPath = router.location.pathname;
   const isDashboard = currentPath === '/dashboard' || currentPath.startsWith('/dashboard/');
-  const isFinance = currentPath === '/finance' || currentPath.startsWith('/finance/');
+  const isBusinessTransactions = currentPath === '/business' || currentPath.startsWith('/business/');
+  const isBankTransactions = currentPath === '/bank' || currentPath.startsWith('/bank/');
 
   const navItemBase = 'flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors';
 
@@ -38,7 +25,8 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
       <header className="fixed top-0 left-0 z-50 flex h-20 w-full items-center justify-between px-6 md:left-64 md:w-[calc(100%-16rem)] bg-slate-100/50 backdrop-blur-sm">
         <Navbar currentPath={currentPath} navItems={[
           { href: '/dashboard', label: 'Dashboard' },
-          { href: '/finance', label: 'Jurnal Otomatis' },
+          { href: '/business', label: 'Transaksi Bisnis' },
+          { href: '/bank', label: 'Transaksi Bank' },
         ]} />
       </header>
 
@@ -69,15 +57,27 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
           </Link>
 
           <Link
-            to="/finance"
+            to="/business"
             className={`${navItemBase} ${
-              isFinance
+              isBusinessTransactions
                 ? 'scale-[0.98] bg-white font-bold text-blue-900 shadow-sm'
                 : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900'
             }`}
           >
             <Users className="h-4 w-4" />
-            Jurnal Otomatis
+            Transaksi Bisnis
+          </Link>
+
+          <Link
+            to="/bank"
+            className={`${navItemBase} ${
+              isBankTransactions
+                ? 'scale-[0.98] bg-white font-bold text-blue-900 shadow-sm'
+                : 'text-slate-600 hover:bg-slate-200/50 hover:text-slate-900'
+            }`}
+          >
+            <Users className="h-4 w-4" />
+            Transaksi Bank
           </Link>
         </nav>
 

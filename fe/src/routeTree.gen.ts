@@ -12,8 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForceChangePasswordRouteImport } from './routes/force-change-password'
-import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as BusinessRouteImport } from './routes/business'
+import { Route as BankRouteImport } from './routes/bank'
 import { Route as IndexRouteImport } from './routes/index'
 
 const RegisterRoute = RegisterRouteImport.update({
@@ -31,14 +32,19 @@ const ForceChangePasswordRoute = ForceChangePasswordRouteImport.update({
   path: '/force-change-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FinanceRoute = FinanceRouteImport.update({
-  id: '/finance',
-  path: '/finance',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BusinessRoute = BusinessRouteImport.update({
+  id: '/business',
+  path: '/business',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BankRoute = BankRouteImport.update({
+  id: '/bank',
+  path: '/bank',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -49,16 +55,18 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/bank': typeof BankRoute
+  '/business': typeof BusinessRoute
   '/dashboard': typeof DashboardRoute
-  '/finance': typeof FinanceRoute
   '/force-change-password': typeof ForceChangePasswordRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/bank': typeof BankRoute
+  '/business': typeof BusinessRoute
   '/dashboard': typeof DashboardRoute
-  '/finance': typeof FinanceRoute
   '/force-change-password': typeof ForceChangePasswordRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
@@ -66,8 +74,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/bank': typeof BankRoute
+  '/business': typeof BusinessRoute
   '/dashboard': typeof DashboardRoute
-  '/finance': typeof FinanceRoute
   '/force-change-password': typeof ForceChangePasswordRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
@@ -76,24 +85,27 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/bank'
+    | '/business'
     | '/dashboard'
-    | '/finance'
     | '/force-change-password'
     | '/login'
     | '/register'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/bank'
+    | '/business'
     | '/dashboard'
-    | '/finance'
     | '/force-change-password'
     | '/login'
     | '/register'
   id:
     | '__root__'
     | '/'
+    | '/bank'
+    | '/business'
     | '/dashboard'
-    | '/finance'
     | '/force-change-password'
     | '/login'
     | '/register'
@@ -101,8 +113,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BankRoute: typeof BankRoute
+  BusinessRoute: typeof BusinessRoute
   DashboardRoute: typeof DashboardRoute
-  FinanceRoute: typeof FinanceRoute
   ForceChangePasswordRoute: typeof ForceChangePasswordRoute
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
@@ -131,18 +144,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForceChangePasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/finance': {
-      id: '/finance'
-      path: '/finance'
-      fullPath: '/finance'
-      preLoaderRoute: typeof FinanceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/business': {
+      id: '/business'
+      path: '/business'
+      fullPath: '/business'
+      preLoaderRoute: typeof BusinessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bank': {
+      id: '/bank'
+      path: '/bank'
+      fullPath: '/bank'
+      preLoaderRoute: typeof BankRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -157,8 +177,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BankRoute: BankRoute,
+  BusinessRoute: BusinessRoute,
   DashboardRoute: DashboardRoute,
-  FinanceRoute: FinanceRoute,
   ForceChangePasswordRoute: ForceChangePasswordRoute,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
