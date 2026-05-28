@@ -3,44 +3,35 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { PageTransition } from '@/components/page_transition';
 import { requireAuthBeforeLoad } from '@/utils/route_guards';
 import {
-  ArrowRight,
   Bot,
   Check,
   ChevronLeft,
   ChevronRight,
   Cloud,
   Filter,
-  Link2,
   RefreshCw,
   Search,
-  Settings,
   FileText,
   Upload,
   X,
 } from 'lucide-react';
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 
-const transactions = [
-  { id: 1, date: '12 Agu 23', time: '14:20 WIB', vendor: 'PLN Persero', initials: 'PL', amount: '12.450.000', coa: '6100 - Beban Listrik', score: 98, status: 'verified' },
-  { id: 2, date: '11 Agu 23', time: '10:45 WIB', vendor: 'Biznet Networks', initials: 'BN', amount: '8.200.000', coa: '6200 - Beban Internet', score: 82, status: 'review' },
-  { id: 3, date: '10 Agu 23', time: '09:15 WIB', vendor: 'Telkomsel', initials: 'TS', amount: '1.500.000', coa: '6200 - Beban Internet', score: 99, status: 'verified' },
-  { id: 4, date: '09 Agu 23', time: '16:30 WIB', vendor: 'Grab Indonesia', initials: 'GR', amount: '450.000', coa: '6500 - Beban Perjalanan', score: 95, status: 'verified' },
-  { id: 5, date: '08 Agu 23', time: '11:00 WIB', vendor: 'Tokopedia', initials: 'TK', amount: '2.100.000', coa: '6600 - Perlengkapan', score: 92, status: 'verified' },
-  { id: 6, date: '07 Agu 23', time: '13:45 WIB', vendor: 'Amazon Web Services', initials: 'AZ', amount: '15.600.000', coa: '6200 - Beban Cloud', score: 98, status: 'verified' },
-  { id: 7, date: '06 Agu 23', time: '10:20 WIB', vendor: 'PAM Jaya', initials: 'PD', amount: '1.200.000', coa: '6100 - Beban Air', score: 88, status: 'review' },
-  { id: 8, date: '05 Agu 23', time: '15:10 WIB', vendor: 'Slack Technologies', initials: 'SL', amount: '3.400.000', coa: '6200 - Beban Software', score: 96, status: 'verified' },
-  { id: 9, date: '04 Agu 23', time: '09:30 WIB', vendor: 'Microsoft 365', initials: 'MF', amount: '7.800.000', coa: '6200 - Beban Lisensi', score: 97, status: 'verified' },
-  { id: 10, date: '03 Agu 23', time: '16:45 WIB', vendor: 'Gojek', initials: 'GO', amount: '320.000', coa: '6500 - Beban Kurir', score: 94, status: 'verified' },
-  { id: 11, date: '02 Agu 23', time: '11:15 WIB', vendor: 'Facebook Ads', initials: 'FB', amount: '25.000.000', coa: '6700 - Beban Iklan', score: 99, status: 'verified' },
-  { id: 12, date: '01 Agu 23', time: '14:00 WIB', vendor: 'Biznet Networks', initials: 'BN', amount: '8.200.000', coa: '6200 - Beban Internet', score: 100, status: 'verified' },
-];
+type BusinessTransaction = {
+  id: string;
+  date: string;
+  time: string;
+  vendor: string;
+  initials: string;
+  amount: string;
+  coa: string;
+  score: number;
+  status: string;
+};
 
-const aiSuggestions = [
-  { vendor: 'Biznet Networks', coa: 'Beban Internet (6200)', amount: 'Rp 8.200.000', confidence: 94 },
-  { vendor: 'PT. Maju', coa: 'Beban Operasional (6100)', amount: 'Rp 12.450.000', confidence: 98 },
-  { vendor: 'Telkomsel', coa: 'Beban Komunikasi', amount: 'Rp 1.500.000', confidence: 92 },
-  { vendor: 'Gojek / Grab', coa: 'Beban Perjalanan', amount: 'Rp 345.000', confidence: 88 },
-];
+type ImportDocumentResponse = {
+  message?: string;
+};
 
 const coaOptions = [
   '6200 - Beban Internet & Komunikasi',
@@ -243,8 +234,35 @@ function TransaksiBisnisPage() {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'pending'>('all');
   const [isUploading, setIsUploading] = useState(false);
+  const [transactions, setTransactions] = useState<BusinessTransaction[]>([]);
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
+
+  useEffect(() => {
+    const loadTransactions = async () => {
+      setIsLoadingTransactions(true);
+      try {
+        const response = await fetch(`${apiBaseUrl}/business/tra`, {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error('Gagal memuat transaksi bisnis');
+        }
+
+        const data = (await response.json()) as BusinessTransaction[];
+        setTransactions(data);
+      } catch (error) {
+        console.error('Gagal memuat transaksi bisnis:', error);
+        setTransactions([]);
+      } finally {
+        setIsLoadingTransactions(false);
+      }
+    };
+
+    void loadTransactions();
+  }, [apiBaseUrl]);
 
   const handleImportClick = () => uploadInputRef.current?.click();
 
@@ -257,18 +275,32 @@ function TransaksiBisnisPage() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(`${apiBaseUrl}/finance/import-document`, {
+      const response = await fetch(`${apiBaseUrl}/business/import-document`, {
         method: 'POST',
         body: formData,
         credentials: 'include',
       });
 
-      if (!response.ok) throw new Error('Upload gagal');
+      if (!response.ok) {
+        let errorMessage = 'Upload gagal';
+        try {
+          const payload = (await response.json()) as ImportDocumentResponse;
+          errorMessage = payload?.message || errorMessage;
+        } catch {
+          try {
+            errorMessage = (await response.text()) || errorMessage;
+          } catch {
+            errorMessage = errorMessage;
+          }
+        }
+        throw new Error(errorMessage);
+      }
 
-      alert('Dokumen berhasil diunggah melalui backend ke n8n.');
+      alert('Berhasil di upload');
     } catch (error) {
       console.error('Gagal upload dokumen:', error);
-      alert('Upload dokumen gagal. Silakan coba lagi.');
+      const errorMessage = error instanceof Error ? error.message : 'Upload dokumen gagal. Silakan coba lagi.';
+      alert(errorMessage);
     } finally {
       event.target.value = '';
       setIsUploading(false);
@@ -336,8 +368,8 @@ function TransaksiBisnisPage() {
                       <tr>
                         <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
                           <Cloud size={32} className="mx-auto mb-2" />
-                          <p className="font-bold text-sm">Tidak ada transaksi yang ditemukan</p>
-                          <p className="text-[10px] mt-1">Coba sesuaikan kata kunci pencarian atau filter yang digunakan.</p>
+                          <p className="font-bold text-sm">{isLoadingTransactions ? 'Memuat transaksi...' : 'Tidak ada transaksi yang ditemukan'}</p>
+                          <p className="text-[10px] mt-1">{isLoadingTransactions ? 'Menunggu data dari backend.' : 'Coba sesuaikan kata kunci pencarian atau filter yang digunakan.'}</p>
                         </td>
                       </tr>
                     )}

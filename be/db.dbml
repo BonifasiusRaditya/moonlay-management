@@ -10,7 +10,8 @@ Table users {
 Table documents {
   id uuid [primary key]
   file_name varchar
-  file_type varchar // pdf, csv, xls
+  file_extension varchar //
+  file_type varchar // invoice or bank statement
   file_url varchar // connect ke drive
   uploaded_by uuid [ref: > users.id]
   uploaded_at timestamp

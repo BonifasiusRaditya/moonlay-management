@@ -36,7 +36,7 @@ func ConfigureRouter(e *echo.Echo, serviceName string, db *gorm.DB) {
 	authUsecase := usecases.NewAuthUsecase(authRepo)
 	authController := controllers.NewAuthController(authUsecase)
 	authMW := middleware.NewAuthMiddleware(authUsecase.TokenSecret())
-	financeController := controllers.NewFinanceController(usecases.NewFinanceUsecase())
+	businessController := controllers.NewBusinessController(usecases.NewBusinessImport(db))
 	clientController := controllers.NewClientController(usecases.NewClientUsecase(repositories.NewClientRepository(db), repositories.NewUserRepository(db), repositories.NewRBACRepository(db)))
 	branchController := controllers.NewBranchController(usecases.NewBranchUsecase(repositories.NewBranchRepository(db), repositories.NewClientRepository(db)))
 	userController := controllers.NewUserController(usecases.NewUserUsecase(repositories.NewUserRepository(db), repositories.NewClientRepository(db), repositories.NewBranchRepository(db)))
@@ -123,6 +123,6 @@ func ConfigureRouter(e *echo.Echo, serviceName string, db *gorm.DB) {
 	reports.GET("/assignments/export", reportController.ExportAssignments)
 	reports.GET("/devices/export", reportController.ExportDevices)
 
-	finance := v1.Group("/finance", authMW.RequireAuth())
-	finance.POST("/import-document", financeController.ImportDocument)
+	business := v1.Group("/business", authMW.RequireAuth())
+	business.POST("/import-document", businessController.ImportDocument)
 }

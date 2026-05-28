@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS documents (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   file_name varchar,
+  file_extension varchar,
   file_type varchar,
   file_url varchar,
   uploaded_by integer REFERENCES users(id) ON DELETE SET NULL,
