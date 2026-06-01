@@ -29,6 +29,19 @@ CREATE TABLE IF NOT EXISTS transactions_business (
   coa varchar NOT NULL,
   score_ai real,
   status varchar,
+  parse varchar,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS transaction_business_items (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  transaction_business_id uuid NOT NULL REFERENCES transactions_business(id) ON DELETE CASCADE,
+  item_name varchar NOT NULL,
+  item_description text,
+  quantity numeric(18,2),
+  unit_price numeric(18,2),
+  amount numeric(18,2) NOT NULL,
+  coa varchar,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -59,6 +72,7 @@ CREATE TABLE IF NOT EXISTS business_ai_confidence (
   summary_risk_level varchar,
   summary_recommendation text,
   summary_invoice_type_prediction varchar,
+  status boolean,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -66,6 +80,7 @@ CREATE TABLE IF NOT EXISTS business_ai_confidence (
 select table_name from information_schema.tables where table_schema = 'public';
 CREATE INDEX documents_uploaded_by_idx ON documents(uploaded_by);
 CREATE INDEX transactions_business_transaction_date_idx ON transactions_business(transaction_date);
+CREATE INDEX transaction_business_items_transaction_business_id_idx ON transaction_business_items(transaction_business_id);
 CREATE INDEX business_ai_confidence_transaction_id_idx ON business_ai_confidence(transaction_id); 
 
 -- End of schema

@@ -58,16 +58,16 @@ type BusinessTransactionListItem struct {
 }
 
 type BusinessTransaction struct {
-	ID              string     `gorm:"column:id;type:uuid;default:gen_random_uuid();primaryKey"`
-	DocumentID      *string    `gorm:"column:document_id;type:uuid"`
-	InvoiceNumber   string     `gorm:"column:invoice_number"`
-	TransactionDate time.Time  `gorm:"column:transaction_date"`
-	Vendor          string     `gorm:"column:vendor"`
-	Amount          float64    `gorm:"column:amount"`
-	COA             string     `gorm:"column:coa"`
-	ScoreAI         float64    `gorm:"column:score_ai"`
-	Status          string     `gorm:"column:status"`
-	CreatedAt       *time.Time `gorm:"column:created_at"`
+	ID              string    `gorm:"column:id;type:uuid;default:gen_random_uuid();primaryKey"`
+	DocumentID      *string   `gorm:"column:document_id;type:uuid"`
+	InvoiceNumber   string    `gorm:"column:invoice_number"`
+	TransactionDate time.Time `gorm:"column:transaction_date"`
+	Vendor          string    `gorm:"column:vendor"`
+	Amount          float64   `gorm:"column:amount"`
+	COA             string    `gorm:"column:coa"`
+	ScoreAI         float64   `gorm:"column:score_ai"`
+	Status          string    `gorm:"column:status"`
+	CreatedAt       time.Time `gorm:"column:created_at"`
 }
 
 func (BusinessTransaction) TableName() string {
@@ -75,33 +75,33 @@ func (BusinessTransaction) TableName() string {
 }
 
 type BusinessAIConfidence struct {
-	ID                                string     `gorm:"column:id;type:uuid;default:gen_random_uuid();primaryKey"`
-	TransactionID                     string     `gorm:"column:transaction_id;type:uuid"`
-	ConfidenceScore                   float64    `gorm:"column:confidence_score"`
-	ConfidenceLevel                   string     `gorm:"column:confidence_level"`
-	COARecommendation                 string     `gorm:"column:coa_recommendation"`
-	HistoryMatchScore                 float64    `gorm:"column:history_match_score"`
-	HistoryMatchWeight                float64    `gorm:"column:history_match_weight"`
-	HistoryMatchReason                string     `gorm:"column:history_match_reason"`
-	VendorMatchScore                  float64    `gorm:"column:vendor_match_score"`
-	VendorMatchWeight                 float64    `gorm:"column:vendor_match_weight"`
-	VendorMatchReason                 string     `gorm:"column:vendor_match_reason"`
-	AmountPatternScore                float64    `gorm:"column:amount_pattern_score"`
-	AmountPatternWeight               float64    `gorm:"column:amount_pattern_weight"`
-	AmountPatternHistoricalAverage    *float64   `gorm:"column:amount_pattern_historical_average"`
-	AmountPatternDifferencePercentage float64    `gorm:"column:amount_pattern_difference_percentage"`
-	AmountPatternReason               string     `gorm:"column:amount_pattern_reason"`
-	KeywordMatchScore                 float64    `gorm:"column:keyword_match_score"`
-	KeywordMatchWeight                float64    `gorm:"column:keyword_match_weight"`
-	KeywordMatchReason                string     `gorm:"column:keyword_match_reason"`
-	FrequencyPatternScore             float64    `gorm:"column:frequency_pattern_score"`
-	FrequencyPatternWeight            float64    `gorm:"column:frequency_pattern_weight"`
-	FrequencyPatternReason            string     `gorm:"column:frequency_pattern_reason"`
-	SummaryMostSimilarTransaction     string     `gorm:"column:summary_most_similar_transaction"`
-	SummaryRiskLevel                  string     `gorm:"column:summary_risk_level"`
-	SummaryRecommendation             string     `gorm:"column:summary_recommendation"`
-	SummaryInvoiceTypePrediction      string     `gorm:"column:summary_invoice_type_prediction"`
-	CreatedAt                         *time.Time `gorm:"column:created_at"`
+	ID                                string    `gorm:"column:id;type:uuid;default:gen_random_uuid();primaryKey"`
+	TransactionID                     string    `gorm:"column:transaction_id;type:uuid"`
+	ConfidenceScore                   float64   `gorm:"column:confidence_score"`
+	ConfidenceLevel                   string    `gorm:"column:confidence_level"`
+	COARecommendation                 string    `gorm:"column:coa_recommendation"`
+	HistoryMatchScore                 float64   `gorm:"column:history_match_score"`
+	HistoryMatchWeight                float64   `gorm:"column:history_match_weight"`
+	HistoryMatchReason                string    `gorm:"column:history_match_reason"`
+	VendorMatchScore                  float64   `gorm:"column:vendor_match_score"`
+	VendorMatchWeight                 float64   `gorm:"column:vendor_match_weight"`
+	VendorMatchReason                 string    `gorm:"column:vendor_match_reason"`
+	AmountPatternScore                float64   `gorm:"column:amount_pattern_score"`
+	AmountPatternWeight               float64   `gorm:"column:amount_pattern_weight"`
+	AmountPatternHistoricalAverage    *float64  `gorm:"column:amount_pattern_historical_average"`
+	AmountPatternDifferencePercentage float64   `gorm:"column:amount_pattern_difference_percentage"`
+	AmountPatternReason               string    `gorm:"column:amount_pattern_reason"`
+	KeywordMatchScore                 float64   `gorm:"column:keyword_match_score"`
+	KeywordMatchWeight                float64   `gorm:"column:keyword_match_weight"`
+	KeywordMatchReason                string    `gorm:"column:keyword_match_reason"`
+	FrequencyPatternScore             float64   `gorm:"column:frequency_pattern_score"`
+	FrequencyPatternWeight            float64   `gorm:"column:frequency_pattern_weight"`
+	FrequencyPatternReason            string    `gorm:"column:frequency_pattern_reason"`
+	SummaryMostSimilarTransaction     string    `gorm:"column:summary_most_similar_transaction"`
+	SummaryRiskLevel                  string    `gorm:"column:summary_risk_level"`
+	SummaryRecommendation             string    `gorm:"column:summary_recommendation"`
+	SummaryInvoiceTypePrediction      string    `gorm:"column:summary_invoice_type_prediction"`
+	CreatedAt                         time.Time `gorm:"column:created_at"`
 }
 
 func (BusinessAIConfidence) TableName() string {
@@ -132,9 +132,10 @@ func (Document) TableName() string {
 }
 
 type FinanceImportResponse struct {
-	Message        string `json:"message"`
-	Filename       string `json:"filename"`
-	UpstreamStatus int    `json:"upstream_status"`
-	UpstreamBody   string `json:"-"`
-	SavedCount     int    `json:"saved_count"`
+	Message                string `json:"message"`
+	Filename               string `json:"filename"`
+	UpstreamStatus         int    `json:"upstream_status"`
+	UpstreamBody           string `json:"-"`
+	SavedCount             int    `json:"saved_count"`
+	AIConfidenceSavedCount int    `json:"ai_confidence_saved_count"`
 }

@@ -243,7 +243,7 @@ function TransaksiBisnisPage() {
     const loadTransactions = async () => {
       setIsLoadingTransactions(true);
       try {
-        const response = await fetch(`${apiBaseUrl}/business/tra`, {
+        const response = await fetch(`${apiBaseUrl}/business/transactions`, {
           credentials: 'include',
         });
 

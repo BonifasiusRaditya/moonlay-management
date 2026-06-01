@@ -1,33 +1,46 @@
 Table users {
   id uuid [primary key]
   name varchar [not null]
-  email varchar [not null]
+  email varchar [not null, unique]
   password varchar [not null]
-  role varchar // kira kira apa ya
-  created_at timestamp
+  role varchar
+  created_at timestamptz [not null]
 }
 
 Table documents {
   id uuid [primary key]
   file_name varchar
-  file_extension varchar //
-  file_type varchar // invoice or bank statement
-  file_url varchar // connect ke drive
-  uploaded_by uuid [ref: > users.id]
-  uploaded_at timestamp
+  file_extension varchar
+  file_type varchar
+  file_url varchar
+  uploaded_by integer [ref: > users.id]
+  uploaded_at timestamptz [not null]
 }
 
 Table transactions_business {
   id uuid [primary key]
   document_id uuid [ref: > documents.id]
-  invoice_number varchar // no faktur
+  invoice_number varchar
   transaction_date date [not null]
   vendor varchar [not null]
   amount decimal [not null]
   coa varchar [not null]
   score_ai float
-  status varchar [note: 'pending | approved | rejected']
-  created_at timestamp
+  status varchar
+  parse varchar
+  created_at timestamptz [not null]
+}
+
+Table transaction_business_items {
+  id uuid [primary key]
+  transaction_business_id uuid [not null, ref: > transactions_business.id]
+  item_name varchar [not null]
+  item_description text
+  quantity decimal
+  unit_price decimal
+  amount decimal [not null]
+  coa varchar
+  created_at timestamptz [not null]
 }
 
 Table business_ai_confidence {
@@ -57,5 +70,6 @@ Table business_ai_confidence {
   summary_risk_level varchar
   summary_recommendation text
   summary_invoice_type_prediction varchar
-  created_at timestamp
+  status boolean
+  created_at timestamptz [not null]
 }

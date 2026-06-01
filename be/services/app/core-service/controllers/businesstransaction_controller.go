@@ -19,6 +19,24 @@ func NewBusinessController(uc *usecases.BusinessUsecase) *BusinessController {
 	return &BusinessController{usecase: uc}
 }
 
+// ListTransactions godoc
+// @Summary List business transactions
+// @Tags Business
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} models.BusinessTransactionListItem
+// @Failure 500 {object} map[string]interface{}
+// @Router /business/transactions [get]
+func (ctl *BusinessController) ListTransactions(c echo.Context) error {
+	items, err := ctl.usecase.ListBusinessTransactions(c.Request().Context())
+	if err != nil {
+		log.Printf("business.list-transactions: failed err=%v", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to load business transactions")
+	}
+
+	return c.JSON(http.StatusOK, items)
+}
+
 // ImportDocument godoc
 // @Summary Upload business document
 // @Tags Business
@@ -73,21 +91,22 @@ func (ctl *BusinessController) ImportDocument(c echo.Context) error {
 	}
 	log.Printf("business.import-document: final uploaderID=%d file=%s", uploaderID, fileHeader.Filename)
 
-	status, upstreamBody, savedCount, err := ctl.usecase.ImportDocument(c.Request().Context(), fileHeader.Filename, content, uploaderID)
+	status, upstreamBody, savedCount, aiSavedCount, err := ctl.usecase.ImportDocument(c.Request().Context(), fileHeader.Filename, content, uploaderID)
 	if err != nil {
-		log.Printf("business.import-document: failed file=%s upstream_status=%d saved_count=%d err=%v body=%s", fileHeader.Filename, status, savedCount, err, upstreamBody)
+		log.Printf("business.import-document: failed file=%s upstream_status=%d saved_count=%d ai_saved_count=%d err=%v body=%s", fileHeader.Filename, status, savedCount, aiSavedCount, err, upstreamBody)
 		if status == 0 {
 			return echo.NewHTTPError(http.StatusBadGateway, err.Error())
 		}
 		return echo.NewHTTPError(http.StatusBadGateway, upstreamBody)
 	}
 
-	log.Printf("business.import-document: success file=%s upstream_status=%d saved_count=%d", fileHeader.Filename, status, savedCount)
+	log.Printf("business.import-document: success file=%s upstream_status=%d saved_count=%d ai_saved_count=%d", fileHeader.Filename, status, savedCount, aiSavedCount)
 	return c.JSON(http.StatusOK, models.FinanceImportResponse{
-		Message:        "Dokumen berhasil di upload dan disimpan ke database",
-		Filename:       fileHeader.Filename,
-		UpstreamStatus: status,
-		UpstreamBody:   upstreamBody,
-		SavedCount:     savedCount,
+		Message:                "Dokumen berhasil di upload, disimpan, dan diproses AI confidence",
+		Filename:               fileHeader.Filename,
+		UpstreamStatus:         status,
+		UpstreamBody:           upstreamBody,
+		SavedCount:             savedCount,
+		AIConfidenceSavedCount: aiSavedCount,
 	})
 }

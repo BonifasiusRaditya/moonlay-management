@@ -23,17 +23,22 @@ import (
 )
 
 type BusinessUsecase struct {
-	upstreamURL string
-	httpClient  *http.Client
-	db          *gorm.DB
+	importURL       string
+	aiConfidenceURL string
+	httpClient      *http.Client
+	db              *gorm.DB
 }
 
 func NewBusinessImport(db *gorm.DB) *BusinessUsecase {
-	upstreamURL := strings.TrimSpace(os.Getenv("N8N_IMPORT_DOCUMENT_URL"))
+	importURL := strings.TrimSpace(os.Getenv("N8N_IMPORT_DOCUMENT_URL"))
+	aiConfidenceURL := strings.TrimSpace(os.Getenv("N8N_AI_CONFIDENCE_URL"))
 
 	// nanti dihapus
-	if upstreamURL == "" {
-		upstreamURL = "http://localhost:5678/webhook-test/import_document"
+	if importURL == "" {
+		importURL = "http://localhost:5678/webhook/import_document"
+	}
+	if aiConfidenceURL == "" {
+		aiConfidenceURL = "http://localhost:5678/webhook/ai_confidence"
 	}
 
 	timeoutSeconds := 0
@@ -49,9 +54,10 @@ func NewBusinessImport(db *gorm.DB) *BusinessUsecase {
 	}
 
 	return &BusinessUsecase{
-		upstreamURL: upstreamURL,
-		db:          db,
-		httpClient:  httpClient,
+		importURL:       importURL,
+		aiConfidenceURL: aiConfidenceURL,
+		db:              db,
+		httpClient:      httpClient,
 	}
 }
 
@@ -73,8 +79,58 @@ func getMIMEType(filename string) string {
 	return "application/octet-stream"
 }
 
-func (u *BusinessUsecase) ImportDocument(ctx context.Context, filename string, content []byte, uploaderID uint) (int, string, int, error) {
-	log.Printf("business.import-document.usecase: preparing upstream request file=%s bytes=%d url=%s", filename, len(content), u.upstreamURL)
+func (u *BusinessUsecase) ImportDocument(ctx context.Context, filename string, content []byte, uploaderID uint) (int, string, int, int, error) {
+	status, body, err := u.postMultipartFile(ctx, u.importURL, filename, content, nil, "business.import-document.usecase")
+	if err != nil {
+		return status, body, 0, 0, err
+	}
+
+	documents, err := decodeImportedDocuments([]byte(body))
+	if err != nil || len(documents) == 0 {
+		if err == nil {
+			err = fmt.Errorf("document payload is empty")
+		}
+		log.Printf("business.import-document.usecase: decode documents failed file=%s err=%v body=%s", filename, err, body)
+		return status, body, 0, 0, err
+	}
+	log.Printf("business.import-document.usecase: decode documents success count=%d", len(documents))
+
+	documentSavedCount, savedDocumentID, saveErr := u.SaveImportedDocuments(ctx, documents, uploaderID)
+	if saveErr != nil {
+		log.Printf("business.import-document.usecase: save documents failed file=%s err=%v", filename, saveErr)
+		return status, body, 0, 0, saveErr
+	}
+	log.Printf("business.import-document.usecase: documents saved file=%s saved_count=%d first_document_id=%s", filename, documentSavedCount, savedDocumentID)
+	log.Printf("business.import-document.usecase: documents persisted, triggering ai_confidence file=%s document_saved_count=%d url=%s", filename, documentSavedCount, u.aiConfidenceURL)
+
+	aiStatus, aiBody, err := u.postMultipartFile(ctx, u.aiConfidenceURL, filename, content, map[string]string{"document_id": savedDocumentID}, "business.ai-confidence.usecase")
+	if err != nil {
+		return aiStatus, aiBody, documentSavedCount, 0, err
+	}
+
+	entries, err := decodeAIConfidenceEntries([]byte(aiBody), savedDocumentID)
+	if err != nil {
+		log.Printf("business.ai-confidence.usecase: decode response failed file=%s err=%v body=%s", filename, err, aiBody)
+		return aiStatus, aiBody, documentSavedCount, 0, err
+	}
+	log.Printf("business.ai-confidence.usecase: decoded entries file=%s count=%d", filename, len(entries))
+
+	aiSavedItems, err := u.AddJournalEntries(ctx, entries)
+	if err != nil {
+		log.Printf("business.ai-confidence.usecase: db insert failed file=%s err=%v", filename, err)
+		return aiStatus, aiBody, documentSavedCount, 0, err
+	}
+	log.Printf("business.ai-confidence.usecase: db insert success file=%s saved_count=%d", filename, len(aiSavedItems))
+
+	return aiStatus, aiBody, documentSavedCount, len(aiSavedItems), nil
+}
+
+func (u *BusinessUsecase) postMultipartFile(ctx context.Context, targetURL, filename string, content []byte, fields map[string]string, logPrefix string) (int, string, error) {
+	if strings.TrimSpace(targetURL) == "" {
+		return 0, "", fmt.Errorf("upstream url is required")
+	}
+
+	log.Printf("%s: preparing upstream request file=%s bytes=%d url=%s", logPrefix, filename, len(content), targetURL)
 	var payload bytes.Buffer
 	writer := multipart.NewWriter(&payload)
 
@@ -85,72 +141,233 @@ func (u *BusinessUsecase) ImportDocument(ctx context.Context, filename string, c
 
 	part, err := writer.CreatePart(header)
 	if err != nil {
-		return 0, "", 0, err
+		return 0, "", err
 	}
 	if _, err := part.Write(content); err != nil {
-		return 0, "", 0, err
+		return 0, "", err
 	}
 	if err := writer.Close(); err != nil {
-		return 0, "", 0, err
+		return 0, "", err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, u.upstreamURL, &payload)
+	if len(fields) > 0 {
+		payload.Reset()
+		writer = multipart.NewWriter(&payload)
+
+		for key, value := range fields {
+			if err := writer.WriteField(key, value); err != nil {
+				return 0, "", err
+			}
+		}
+
+		header := make(textproto.MIMEHeader)
+		header.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, filepath.Base(filename)))
+		header.Set("Content-Type", getMIMEType(filename))
+
+		part, err := writer.CreatePart(header)
+		if err != nil {
+			return 0, "", err
+		}
+		if _, err := part.Write(content); err != nil {
+			return 0, "", err
+		}
+		if err := writer.Close(); err != nil {
+			return 0, "", err
+		}
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, &payload)
 	if err != nil {
-		log.Printf("business.import-document.usecase: new request failed file=%s err=%v", filename, err)
-		return 0, "", 0, err
+		log.Printf("%s: new request failed file=%s err=%v", logPrefix, filename, err)
+		return 0, "", err
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	resp, err := u.httpClient.Do(req)
 	if err != nil {
-		log.Printf("business.import-document.usecase: upstream call failed file=%s err=%v", filename, err)
-		return 0, "", 0, err
+		log.Printf("%s: upstream call failed file=%s err=%v", logPrefix, filename, err)
+		return 0, "", err
 	}
 	defer resp.Body.Close()
-	log.Printf("business.import-document.usecase: upstream response file=%s status=%s", filename, resp.Status)
+	log.Printf("%s: upstream response file=%s status=%s", logPrefix, filename, resp.Status)
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
-		log.Printf("business.import-document.usecase: read upstream body failed file=%s status=%s err=%v", filename, resp.Status, err)
-		return resp.StatusCode, "", 0, err
+		log.Printf("%s: read upstream body failed file=%s status=%s err=%v", logPrefix, filename, resp.Status, err)
+		return resp.StatusCode, "", err
 	}
-	log.Printf("business.import-document.usecase: upstream body file=%s bytes=%d body=%s", filename, len(body), string(body))
+	log.Printf("%s: upstream body file=%s bytes=%d body=%s", logPrefix, filename, len(body), string(body))
 
 	if resp.StatusCode >= http.StatusBadRequest {
-		log.Printf("business.import-document.usecase: upstream returned error file=%s status=%d", filename, resp.StatusCode)
-		return resp.StatusCode, string(body), 0, fmt.Errorf("n8n upload failed: %s", resp.Status)
+		log.Printf("%s: upstream returned error file=%s status=%d", logPrefix, filename, resp.StatusCode)
+		return resp.StatusCode, string(body), fmt.Errorf("n8n upload failed: %s", resp.Status)
 	}
 
-	documents, err := decodeImportedDocuments(body)
-	if err == nil && len(documents) > 0 {
-		log.Printf("business.import-document.usecase: decode documents SUCCESS count=%d", len(documents))
-		savedCount, saveErr := u.SaveImportedDocuments(ctx, documents, uploaderID)
-		if saveErr != nil {
-			log.Printf("business.import-document.usecase: save documents failed file=%s err=%v", filename, saveErr)
-			return resp.StatusCode, string(body), 0, saveErr
+	return resp.StatusCode, string(body), nil
+}
+
+type aiConfidenceWebhookResponse struct {
+	Response int                     `json:"response"`
+	Data     aiConfidenceWebhookData `json:"data"`
+}
+
+type aiConfidenceWebhookData struct {
+	TransactionsBusiness aiConfidenceTransactionBusiness `json:"transactions_business"`
+	BusinessAIConfidence aiConfidenceBusinessConfidence  `json:"business_ai_confidence"`
+}
+
+type aiConfidenceTransactionBusiness struct {
+	DocumentID      string  `json:"document_id"`
+	InvoiceNumber   string  `json:"invoice_number"`
+	TransactionDate string  `json:"transaction_date"`
+	Vendor          string  `json:"vendor"`
+	Amount          float64 `json:"amount"`
+	COA             string  `json:"coa"`
+	ScoreAI         float64 `json:"score_ai"`
+	Status          string  `json:"status"`
+}
+
+type aiConfidenceBusinessConfidence struct {
+	ConfidenceScore                   float64  `json:"confidence_score"`
+	ConfidenceLevel                   string   `json:"confidence_level"`
+	COARecommendation                 string   `json:"coa_recommendation"`
+	HistoryMatchScore                 float64  `json:"history_match_score"`
+	HistoryMatchWeight                float64  `json:"history_match_weight"`
+	HistoryMatchReason                string   `json:"history_match_reason"`
+	VendorMatchScore                  float64  `json:"vendor_match_score"`
+	VendorMatchWeight                 float64  `json:"vendor_match_weight"`
+	VendorMatchReason                 string   `json:"vendor_match_reason"`
+	AmountPatternScore                float64  `json:"amount_pattern_score"`
+	AmountPatternWeight               float64  `json:"amount_pattern_weight"`
+	AmountPatternHistoricalAverage    *float64 `json:"amount_pattern_historical_average"`
+	AmountPatternDifferencePercentage float64  `json:"amount_pattern_difference_percentage"`
+	AmountPatternReason               string   `json:"amount_pattern_reason"`
+	KeywordMatchScore                 float64  `json:"keyword_match_score"`
+	KeywordMatchWeight                float64  `json:"keyword_match_weight"`
+	KeywordMatchReason                string   `json:"keyword_match_reason"`
+	FrequencyPatternScore             float64  `json:"frequency_pattern_score"`
+	FrequencyPatternWeight            float64  `json:"frequency_pattern_weight"`
+	FrequencyPatternReason            string   `json:"frequency_pattern_reason"`
+	SummaryMostSimilarTransaction     string   `json:"summary_most_similar_transaction"`
+	SummaryRiskLevel                  string   `json:"summary_risk_level"`
+	SummaryRecommendation             string   `json:"summary_recommendation"`
+	SummaryInvoiceTypePrediction      string   `json:"summary_invoice_type_prediction"`
+}
+
+func decodeAIConfidenceEntries(body []byte, defaultDocumentID string) ([]models.JournalEntryRequest, error) {
+	var wrapper aiConfidenceWebhookResponse
+	if err := json.Unmarshal(body, &wrapper); err == nil {
+		entry, err := aiConfidenceDataToJournalEntry(wrapper.Data, defaultDocumentID)
+		if err != nil {
+			return nil, err
 		}
-		log.Printf("business.import-document.usecase: documents saved file=%s saved_count=%d", filename, savedCount)
-		return resp.StatusCode, string(body), savedCount, nil
-	}
-	if err != nil {
-		log.Printf("business.import-document.usecase: decode documents FAILED file=%s err=%v (trying journal entries fallback)", filename, err)
+		return []models.JournalEntryRequest{entry}, nil
 	}
 
-	entries, err := decodeJournalEntries(body)
-	if err != nil {
-		log.Printf("business.import-document.usecase: decode response failed file=%s err=%v body=%s", filename, err, string(body))
-		return resp.StatusCode, string(body), 0, err
+	var single aiConfidenceWebhookData
+	if err := json.Unmarshal(body, &single); err == nil {
+		entry, err := aiConfidenceDataToJournalEntry(single, defaultDocumentID)
+		if err != nil {
+			return nil, err
+		}
+		return []models.JournalEntryRequest{entry}, nil
 	}
-	log.Printf("business.import-document.usecase: decoded entries file=%s count=%d", filename, len(entries))
 
-	inserted, err := u.AddJournalEntries(ctx, entries)
-	if err != nil {
-		log.Printf("business.import-document.usecase: db insert failed file=%s err=%v", filename, err)
-		return resp.StatusCode, string(body), 0, err
+	return nil, fmt.Errorf("payload must contain ai confidence response data")
+}
+
+func aiConfidenceDataToJournalEntry(data aiConfidenceWebhookData, defaultDocumentID string) (models.JournalEntryRequest, error) {
+	transaction := data.TransactionsBusiness
+	confidence := data.BusinessAIConfidence
+
+	if strings.TrimSpace(transaction.InvoiceNumber) == "" {
+		return models.JournalEntryRequest{}, fmt.Errorf("invoice_number is required in ai confidence response")
 	}
-	log.Printf("business.import-document.usecase: db insert success file=%s saved_count=%d", filename, len(inserted))
+	if strings.TrimSpace(transaction.Vendor) == "" {
+		return models.JournalEntryRequest{}, fmt.Errorf("vendor is required in ai confidence response")
+	}
 
-	return resp.StatusCode, string(body), len(inserted), nil
+	documentID := strings.TrimSpace(transaction.DocumentID)
+	if !isUUID(documentID) {
+		documentID = strings.TrimSpace(defaultDocumentID)
+	}
+
+	return models.JournalEntryRequest{
+		DocumentID:        documentID,
+		InvoiceNumber:     strings.TrimSpace(transaction.InvoiceNumber),
+		TransactionDate:   strings.TrimSpace(transaction.TransactionDate),
+		Vendor:            strings.TrimSpace(transaction.Vendor),
+		Amount:            transaction.Amount,
+		COA:               strings.TrimSpace(transaction.COA),
+		Status:            strings.TrimSpace(transaction.Status),
+		ConfidenceScore:   confidence.ConfidenceScore,
+		COARecommendation: strings.TrimSpace(confidence.COARecommendation),
+		ConfidenceLevel:   strings.TrimSpace(confidence.ConfidenceLevel),
+		Analysis: models.JournalAnalysisBundle{
+			HistoryMatch: models.JournalAnalysisSection{
+				Score:  confidence.HistoryMatchScore,
+				Weight: confidence.HistoryMatchWeight,
+				Reason: strings.TrimSpace(confidence.HistoryMatchReason),
+			},
+			VendorMatch: models.JournalAnalysisSection{
+				Score:  confidence.VendorMatchScore,
+				Weight: confidence.VendorMatchWeight,
+				Reason: strings.TrimSpace(confidence.VendorMatchReason),
+			},
+			AmountPattern: models.JournalAnalysisSection{
+				Score:                confidence.AmountPatternScore,
+				Weight:               confidence.AmountPatternWeight,
+				HistoricalAverage:    derefFloat64(confidence.AmountPatternHistoricalAverage),
+				DifferencePercentage: confidence.AmountPatternDifferencePercentage,
+				Reason:               strings.TrimSpace(confidence.AmountPatternReason),
+			},
+			KeywordMatch: models.JournalAnalysisSection{
+				Score:  confidence.KeywordMatchScore,
+				Weight: confidence.KeywordMatchWeight,
+				Reason: strings.TrimSpace(confidence.KeywordMatchReason),
+			},
+			FrequencyPattern: models.JournalAnalysisSection{
+				Score:  confidence.FrequencyPatternScore,
+				Weight: confidence.FrequencyPatternWeight,
+				Reason: strings.TrimSpace(confidence.FrequencyPatternReason),
+			},
+		},
+		Summary: models.JournalSummarySection{
+			MostSimilarTransaction: strings.TrimSpace(confidence.SummaryMostSimilarTransaction),
+			RiskLevel:              strings.TrimSpace(confidence.SummaryRiskLevel),
+			Recommendation:         strings.TrimSpace(confidence.SummaryRecommendation),
+			InvoiceTypePrediction:  strings.TrimSpace(confidence.SummaryInvoiceTypePrediction),
+		},
+	}, nil
+}
+
+func derefFloat64(value *float64) float64 {
+	if value == nil {
+		return 0
+	}
+	return *value
+}
+
+func isUUID(value string) bool {
+	if len(value) != 36 {
+		return false
+	}
+
+	value = strings.ToLower(value)
+	for index, char := range value {
+		switch index {
+		case 8, 13, 18, 23:
+			if char != '-' {
+				return false
+			}
+		default:
+			if !(char >= '0' && char <= '9' || char >= 'a' && char <= 'f') {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 func decodeImportedDocuments(body []byte) ([]models.ImportedDocument, error) {
@@ -190,14 +407,15 @@ func decodeImportedDocuments(body []byte) ([]models.ImportedDocument, error) {
 	return nil, fmt.Errorf("payload must be a documents array/object or wrapped data object")
 }
 
-func (u *BusinessUsecase) SaveImportedDocuments(ctx context.Context, docs []models.ImportedDocument, uploaderID uint) (int, error) {
+func (u *BusinessUsecase) SaveImportedDocuments(ctx context.Context, docs []models.ImportedDocument, uploaderID uint) (int, string, error) {
 	if u.db == nil {
-		return 0, fmt.Errorf("database connection is not initialized")
+		return 0, "", fmt.Errorf("database connection is not initialized")
 	}
 
 	log.Printf("business.import-document.usecase.SaveImportedDocuments: start docs_count=%d uploaderID=%d", len(docs), uploaderID)
 
 	now := time.Now().UTC()
+	firstDocumentID := ""
 	err := u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		for _, doc := range docs {
 			fileURL := strings.TrimSpace(doc.WebContentLink)
@@ -228,17 +446,20 @@ func (u *BusinessUsecase) SaveImportedDocuments(ctx context.Context, docs []mode
 				log.Printf("business.import-document.usecase: tx.Create failed err=%v", err)
 				return err
 			}
+			if firstDocumentID == "" {
+				firstDocumentID = document.ID
+			}
 			log.Printf("business.import-document.usecase: document inserted id=%s source_id=%s file=%s", document.ID, strings.TrimSpace(doc.ID), strings.TrimSpace(doc.FileName))
 		}
 		return nil
 	})
 	if err != nil {
 		log.Printf("business.import-document.usecase.SaveImportedDocuments: transaction failed err=%v", err)
-		return 0, err
+		return 0, "", err
 	}
 
-	log.Printf("business.import-document.usecase.SaveImportedDocuments: success saved_count=%d", len(docs))
-	return len(docs), nil
+	log.Printf("business.import-document.usecase.SaveImportedDocuments: success saved_count=%d first_document_id=%s", len(docs), firstDocumentID)
+	return len(docs), firstDocumentID, nil
 }
 
 func decodeJournalEntries(body []byte) ([]models.JournalEntryRequest, error) {
@@ -313,6 +534,7 @@ func (u *BusinessUsecase) AddJournalEntries(ctx context.Context, entries []model
 				COA:             coaValue,
 				ScoreAI:         entry.ConfidenceScore,
 				Status:          statusValue,
+				CreatedAt:       now,
 			}
 
 			if err := tx.Create(&transaction).Error; err != nil {
@@ -348,6 +570,7 @@ func (u *BusinessUsecase) AddJournalEntries(ctx context.Context, entries []model
 				SummaryRiskLevel:                  strings.TrimSpace(entry.Summary.RiskLevel),
 				SummaryRecommendation:             strings.TrimSpace(entry.Summary.Recommendation),
 				SummaryInvoiceTypePrediction:      strings.TrimSpace(entry.Summary.InvoiceTypePrediction),
+				CreatedAt:                         now,
 			}
 
 			if err := tx.Create(&confidence).Error; err != nil {
@@ -477,27 +700,12 @@ func deriveJournalStatus(entry models.JournalEntryRequest) string {
 	return "review"
 }
 
-func nullableString(value string) any {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		return nil
-	}
-	return trimmed
-}
-
 func nullableStringPtr(value string) *string {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
 		return nil
 	}
 	return &trimmed
-}
-
-func nullIfZero(value float64) any {
-	if value == 0 || math.IsNaN(value) || math.IsInf(value, 0) {
-		return nil
-	}
-	return value
 }
 
 func nullIfZeroFloat64(value float64) *float64 {

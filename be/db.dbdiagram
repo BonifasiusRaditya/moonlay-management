@@ -27,8 +27,14 @@
       {
         "name": "business_ai_confidence",
         "schemaName": "public",
-        "x": 3.403021131162916,
-        "y": 735.6310115927957
+        "x": 731.1993285588966,
+        "y": 827.6277364221205
+      },
+      {
+        "name": "transaction_business_items",
+        "schemaName": "public",
+        "x": 17.4789978673425,
+        "y": 620.3614215869362
       }
     ],
     "tableGroupCollapseStates": [],
@@ -75,6 +81,21 @@
           "transaction_id"
         ],
         "secondTableName": "business_ai_confidence",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "transactions_business",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "transaction_business_id"
+        ],
+        "secondTableName": "transaction_business_items",
         "secondSchemaName": "public",
         "secondRelation": "*",
         "checkPoints": []
