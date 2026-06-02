@@ -30,6 +30,7 @@ type JournalEntryRequest struct {
 	Amount            float64               `json:"amount,omitempty"`
 	COA               string                `json:"coa,omitempty"`
 	Status            string                `json:"status,omitempty"`
+	Parse             string                `json:"parse,omitempty"`
 	ConfidenceScore   float64               `json:"confidence_score"`
 	COARecommendation string                `json:"coa_recommendation"`
 	ConfidenceLevel   string                `json:"confidence_level"`
@@ -67,6 +68,7 @@ type BusinessTransaction struct {
 	COA             string    `gorm:"column:coa"`
 	ScoreAI         float64   `gorm:"column:score_ai"`
 	Status          string    `gorm:"column:status"`
+	Parse           string    `gorm:"column:parse"`
 	CreatedAt       time.Time `gorm:"column:created_at"`
 }
 
@@ -101,11 +103,26 @@ type BusinessAIConfidence struct {
 	SummaryRiskLevel                  string    `gorm:"column:summary_risk_level"`
 	SummaryRecommendation             string    `gorm:"column:summary_recommendation"`
 	SummaryInvoiceTypePrediction      string    `gorm:"column:summary_invoice_type_prediction"`
+	Status                            *bool     `gorm:"column:status"`
 	CreatedAt                         time.Time `gorm:"column:created_at"`
 }
 
 func (BusinessAIConfidence) TableName() string {
 	return "business_ai_confidence"
+}
+
+type TransactionBusinessItem struct {
+	ID                    string    `gorm:"column:id;type:uuid;default:gen_random_uuid();primaryKey"`
+	TransactionBusinessID string    `gorm:"column:transaction_business_id;type:uuid"`
+	ItemName              string    `gorm:"column:item_name"`
+	ItemDescription       string    `gorm:"column:item_description"`
+	Quantity              float64   `gorm:"column:quantity"`
+	UnitPrice             float64   `gorm:"column:unit_price"`
+	CreatedAt             time.Time `gorm:"column:created_at"`
+}
+
+func (TransactionBusinessItem) TableName() string {
+	return "transaction_business_items"
 }
 
 type ImportedDocument struct {
@@ -115,6 +132,7 @@ type ImportedDocument struct {
 	FileType       string `json:"file_type"`
 	WebViewLink    string `json:"webViewLink"`
 	WebContentLink string `json:"webContentLink"`
+	Parse          string `json:"parse"`
 }
 
 type Document struct {

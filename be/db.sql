@@ -40,8 +40,6 @@ CREATE TABLE IF NOT EXISTS transaction_business_items (
   item_description text,
   quantity numeric(18,2),
   unit_price numeric(18,2),
-  amount numeric(18,2) NOT NULL,
-  coa varchar,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 

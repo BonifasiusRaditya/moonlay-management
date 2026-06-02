@@ -102,20 +102,31 @@ func (u *BusinessUsecase) ImportDocument(ctx context.Context, filename string, c
 	}
 	log.Printf("business.import-document.usecase: documents saved file=%s saved_count=%d first_document_id=%s", filename, documentSavedCount, savedDocumentID)
 	log.Printf("business.import-document.usecase: documents persisted, triggering ai_confidence file=%s document_saved_count=%d url=%s", filename, documentSavedCount, u.aiConfidenceURL)
+	parseValue := firstNonEmptyParse(documents)
 
-	aiStatus, aiBody, err := u.postMultipartFile(ctx, u.aiConfidenceURL, filename, content, map[string]string{"document_id": savedDocumentID}, "business.ai-confidence.usecase")
+	aiRequest := map[string]string{
+		"document_id": savedDocumentID,
+		"parse":       parseValue,
+	}
+
+	aiStatus, aiBody, err := u.postJSON(ctx, u.aiConfidenceURL, aiRequest, "business.ai-confidence.usecase")
 	if err != nil {
 		return aiStatus, aiBody, documentSavedCount, 0, err
 	}
 
-	entries, err := decodeAIConfidenceEntries([]byte(aiBody), savedDocumentID)
+	entries, transactionItems, err := decodeAIConfidenceEntries([]byte(aiBody), savedDocumentID)
 	if err != nil {
 		log.Printf("business.ai-confidence.usecase: decode response failed file=%s err=%v body=%s", filename, err, aiBody)
 		return aiStatus, aiBody, documentSavedCount, 0, err
 	}
+	for idx := range entries {
+		if strings.TrimSpace(entries[idx].Parse) == "" {
+			entries[idx].Parse = parseValue
+		}
+	}
 	log.Printf("business.ai-confidence.usecase: decoded entries file=%s count=%d", filename, len(entries))
 
-	aiSavedItems, err := u.AddJournalEntries(ctx, entries)
+	aiSavedItems, err := u.AddJournalEntries(ctx, entries, transactionItems)
 	if err != nil {
 		log.Printf("business.ai-confidence.usecase: db insert failed file=%s err=%v", filename, err)
 		return aiStatus, aiBody, documentSavedCount, 0, err
@@ -206,9 +217,63 @@ func (u *BusinessUsecase) postMultipartFile(ctx context.Context, targetURL, file
 	return resp.StatusCode, string(body), nil
 }
 
+func (u *BusinessUsecase) postJSON(ctx context.Context, targetURL string, payload any, logPrefix string) (int, string, error) {
+	if strings.TrimSpace(targetURL) == "" {
+		return 0, "", fmt.Errorf("upstream url is required")
+	}
+
+	bodyBytes, err := json.Marshal(payload)
+	if err != nil {
+		return 0, "", err
+	}
+
+	log.Printf("%s: preparing upstream request url=%s bytes=%d", logPrefix, targetURL, len(bodyBytes))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, targetURL, bytes.NewReader(bodyBytes))
+	if err != nil {
+		log.Printf("%s: new request failed err=%v", logPrefix, err)
+		return 0, "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := u.httpClient.Do(req)
+	if err != nil {
+		log.Printf("%s: upstream call failed err=%v", logPrefix, err)
+		return 0, "", err
+	}
+	defer resp.Body.Close()
+	log.Printf("%s: upstream response status=%s", logPrefix, resp.Status)
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		log.Printf("%s: read upstream body failed status=%s err=%v", logPrefix, resp.Status, err)
+		return resp.StatusCode, "", err
+	}
+	log.Printf("%s: upstream body bytes=%d body=%s", logPrefix, len(body), string(body))
+
+	if resp.StatusCode >= http.StatusBadRequest {
+		log.Printf("%s: upstream returned error status=%d", logPrefix, resp.StatusCode)
+		return resp.StatusCode, string(body), fmt.Errorf("n8n upload failed: %s", resp.Status)
+	}
+
+	return resp.StatusCode, string(body), nil
+}
+
 type aiConfidenceWebhookResponse struct {
 	Response int                     `json:"response"`
 	Data     aiConfidenceWebhookData `json:"data"`
+}
+
+type aiConfidenceWebhookArrayItem struct {
+	Output   []aiConfidenceTransactionItem `json:"output"`
+	Response int                           `json:"response"`
+	Data     aiConfidenceWebhookData       `json:"data"`
+}
+
+type aiConfidenceTransactionItem struct {
+	ItemName        string  `json:"item_name"`
+	ItemDescription string  `json:"item_description"`
+	Quantity        float64 `json:"quantity"`
+	UnitPrice       float64 `json:"unit_price"`
 }
 
 type aiConfidenceWebhookData struct {
@@ -225,6 +290,7 @@ type aiConfidenceTransactionBusiness struct {
 	COA             string  `json:"coa"`
 	ScoreAI         float64 `json:"score_ai"`
 	Status          string  `json:"status"`
+	Parse           string  `json:"parse"`
 }
 
 type aiConfidenceBusinessConfidence struct {
@@ -254,26 +320,63 @@ type aiConfidenceBusinessConfidence struct {
 	SummaryInvoiceTypePrediction      string   `json:"summary_invoice_type_prediction"`
 }
 
-func decodeAIConfidenceEntries(body []byte, defaultDocumentID string) ([]models.JournalEntryRequest, error) {
+func decodeAIConfidenceEntries(body []byte, defaultDocumentID string) ([]models.JournalEntryRequest, []aiConfidenceTransactionItem, error) {
+	var arrayPayload []aiConfidenceWebhookArrayItem
+	if err := json.Unmarshal(body, &arrayPayload); err == nil && len(arrayPayload) > 0 {
+		entries := make([]models.JournalEntryRequest, 0, len(arrayPayload))
+		items := make([]aiConfidenceTransactionItem, 0)
+		for _, item := range arrayPayload {
+			if len(item.Output) > 0 {
+				items = append(items, item.Output...)
+			}
+			if !hasAIConfidenceData(item.Data) {
+				continue
+			}
+
+			entry, err := aiConfidenceDataToJournalEntry(item.Data, defaultDocumentID)
+			if err != nil {
+				return nil, nil, err
+			}
+			entries = append(entries, entry)
+		}
+
+		if len(entries) > 0 {
+			return entries, items, nil
+		}
+	}
+
 	var wrapper aiConfidenceWebhookResponse
 	if err := json.Unmarshal(body, &wrapper); err == nil {
 		entry, err := aiConfidenceDataToJournalEntry(wrapper.Data, defaultDocumentID)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		return []models.JournalEntryRequest{entry}, nil
+		return []models.JournalEntryRequest{entry}, nil, nil
 	}
 
 	var single aiConfidenceWebhookData
 	if err := json.Unmarshal(body, &single); err == nil {
 		entry, err := aiConfidenceDataToJournalEntry(single, defaultDocumentID)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		return []models.JournalEntryRequest{entry}, nil
+		return []models.JournalEntryRequest{entry}, nil, nil
 	}
 
-	return nil, fmt.Errorf("payload must contain ai confidence response data")
+	return nil, nil, fmt.Errorf("payload must contain ai confidence response data")
+}
+
+func hasAIConfidenceData(data aiConfidenceWebhookData) bool {
+	transaction := data.TransactionsBusiness
+	confidence := data.BusinessAIConfidence
+
+	if strings.TrimSpace(transaction.InvoiceNumber) != "" || strings.TrimSpace(transaction.Vendor) != "" {
+		return true
+	}
+	if strings.TrimSpace(confidence.ConfidenceLevel) != "" || strings.TrimSpace(confidence.COARecommendation) != "" {
+		return true
+	}
+	return confidence.ConfidenceScore != 0
 }
 
 func aiConfidenceDataToJournalEntry(data aiConfidenceWebhookData, defaultDocumentID string) (models.JournalEntryRequest, error) {
@@ -300,6 +403,7 @@ func aiConfidenceDataToJournalEntry(data aiConfidenceWebhookData, defaultDocumen
 		Amount:            transaction.Amount,
 		COA:               strings.TrimSpace(transaction.COA),
 		Status:            strings.TrimSpace(transaction.Status),
+		Parse:             strings.TrimSpace(transaction.Parse),
 		ConfidenceScore:   confidence.ConfidenceScore,
 		COARecommendation: strings.TrimSpace(confidence.COARecommendation),
 		ConfidenceLevel:   strings.TrimSpace(confidence.ConfidenceLevel),
@@ -368,6 +472,15 @@ func isUUID(value string) bool {
 	}
 
 	return true
+}
+
+func firstNonEmptyParse(docs []models.ImportedDocument) string {
+	for _, doc := range docs {
+		if parse := strings.TrimSpace(doc.Parse); parse != "" {
+			return parse
+		}
+	}
+	return ""
 }
 
 func decodeImportedDocuments(body []byte) ([]models.ImportedDocument, error) {
@@ -493,7 +606,7 @@ func decodeJournalEntries(body []byte) ([]models.JournalEntryRequest, error) {
 	return nil, fmt.Errorf("payload must be a JSON array, object, or wrapped data object")
 }
 
-func (u *BusinessUsecase) AddJournalEntries(ctx context.Context, entries []models.JournalEntryRequest) ([]models.BusinessTransactionListItem, error) {
+func (u *BusinessUsecase) AddJournalEntries(ctx context.Context, entries []models.JournalEntryRequest, transactionItems []aiConfidenceTransactionItem) ([]models.BusinessTransactionListItem, error) {
 	if u.db == nil {
 		return nil, fmt.Errorf("database connection is not initialized")
 	}
@@ -503,7 +616,7 @@ func (u *BusinessUsecase) AddJournalEntries(ctx context.Context, entries []model
 	results := make([]models.BusinessTransactionListItem, 0, len(entries))
 
 	err := u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		for _, entry := range entries {
+		for entryIndex, entry := range entries {
 			invoiceNumber := strings.TrimSpace(entry.InvoiceNumber)
 			vendor := strings.TrimSpace(entry.Vendor)
 			if invoiceNumber == "" {
@@ -534,6 +647,7 @@ func (u *BusinessUsecase) AddJournalEntries(ctx context.Context, entries []model
 				COA:             coaValue,
 				ScoreAI:         entry.ConfidenceScore,
 				Status:          statusValue,
+				Parse:           strings.TrimSpace(entry.Parse),
 				CreatedAt:       now,
 			}
 
@@ -578,6 +692,29 @@ func (u *BusinessUsecase) AddJournalEntries(ctx context.Context, entries []model
 				return err
 			}
 			log.Printf("Business.add-journal-entries: confidence inserted transaction_id=%s confidence_score=%.2f", transactionID, entry.ConfidenceScore)
+
+			if entryIndex == 0 && len(transactionItems) > 0 {
+				for _, item := range transactionItems {
+					itemName := strings.TrimSpace(item.ItemName)
+					if itemName == "" {
+						continue
+					}
+
+					transactionItem := models.TransactionBusinessItem{
+						TransactionBusinessID: transactionID,
+						ItemName:              itemName,
+						ItemDescription:       strings.TrimSpace(item.ItemDescription),
+						Quantity:              item.Quantity,
+						UnitPrice:             item.UnitPrice,
+						CreatedAt:             now,
+					}
+
+					if err := tx.Create(&transactionItem).Error; err != nil {
+						log.Printf("business.add-journal-entries: insert transaction item failed transaction_id=%s item_name=%s err=%v", transactionID, itemName, err)
+						return err
+					}
+				}
+			}
 
 			results = append(results, models.BusinessTransactionListItem{
 				ID:       transactionID,
