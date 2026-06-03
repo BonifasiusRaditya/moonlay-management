@@ -58,6 +58,40 @@ type BusinessTransactionListItem struct {
 	Status   string  `json:"status"`
 }
 
+type BusinessTransactionItemDetail struct {
+	ID              string  `json:"id"`
+	ItemName        string  `json:"item_name"`
+	ItemDescription string  `json:"item_description"`
+	Quantity        float64 `json:"quantity"`
+	UnitPrice       float64 `json:"unit_price"`
+	Total           float64 `json:"total"`
+}
+
+type BusinessAIConfidenceDetail struct {
+	ConfidenceScore       float64 `json:"confidence_score"`
+	ConfidenceLevel       string  `json:"confidence_level"`
+	COARecommendation     string  `json:"coa_recommendation"`
+	HistoryMatchScore     float64 `json:"history_match_score"`
+	VendorMatchScore      float64 `json:"vendor_match_score"`
+	AmountPatternScore    float64 `json:"amount_pattern_score"`
+	KeywordMatchScore     float64 `json:"keyword_match_score"`
+	FrequencyPatternScore float64 `json:"frequency_pattern_score"`
+}
+
+type BusinessTransactionDetail struct {
+	ID                   string                          `json:"id"`
+	InvoiceNumber        string                          `json:"invoice_number"`
+	Date                 string                          `json:"date"`
+	Time                 string                          `json:"time"`
+	Vendor               string                          `json:"vendor"`
+	Amount               float64                         `json:"amount"`
+	COA                  string                          `json:"coa"`
+	Status               string                          `json:"status"`
+	Score                float64                         `json:"score"`
+	Items                []BusinessTransactionItemDetail `json:"items"`
+	BusinessAIConfidence *BusinessAIConfidenceDetail     `json:"business_ai_confidence,omitempty"`
+}
+
 type BusinessTransaction struct {
 	ID              string    `gorm:"column:id;type:uuid;default:gen_random_uuid();primaryKey"`
 	DocumentID      *string   `gorm:"column:document_id;type:uuid"`

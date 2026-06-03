@@ -124,6 +124,7 @@ func ConfigureRouter(e *echo.Echo, serviceName string, db *gorm.DB) {
 	reports.GET("/devices/export", reportController.ExportDevices)
 
 	business := v1.Group("/business", authMW.RequireAuth())
+	business.GET("/transactions/:id", businessController.GetTransactionDetail)
 	business.GET("/transactions", businessController.ListTransactions)
 	business.POST("/import-document", businessController.ImportDocument)
 }

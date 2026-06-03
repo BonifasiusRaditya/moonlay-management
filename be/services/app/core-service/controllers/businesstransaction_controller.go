@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -17,6 +18,35 @@ type BusinessController struct{ usecase *usecases.BusinessUsecase }
 
 func NewBusinessController(uc *usecases.BusinessUsecase) *BusinessController {
 	return &BusinessController{usecase: uc}
+}
+
+// GetTransactionDetail godoc
+// @Summary Get business transaction detail
+// @Tags Business
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Transaction ID"
+// @Success 200 {object} models.BusinessTransactionDetail
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /business/transactions/{id} [get]
+func (ctl *BusinessController) GetTransactionDetail(c echo.Context) error {
+	transactionID := strings.TrimSpace(c.Param("id"))
+	if transactionID == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "transaction id is required")
+	}
+
+	detail, err := ctl.usecase.GetBusinessTransactionDetail(c.Request().Context(), transactionID)
+	if err != nil {
+		if errors.Is(err, usecases.ErrBusinessTransactionNotFound) {
+			return echo.NewHTTPError(http.StatusNotFound, "business transaction not found")
+		}
+		log.Printf("business.get-transaction-detail: failed id=%s err=%v", transactionID, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to load business transaction detail")
+	}
+
+	return c.JSON(http.StatusOK, detail)
 }
 
 // ListTransactions godoc

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -21,6 +22,8 @@ import (
 
 	"gorm.io/gorm"
 )
+
+var ErrBusinessTransactionNotFound = errors.New("business transaction not found")
 
 type BusinessUsecase struct {
 	importURL       string
@@ -788,6 +791,83 @@ func (u *BusinessUsecase) ListBusinessTransactions(ctx context.Context) ([]model
 	}
 
 	return items, nil
+}
+
+func (u *BusinessUsecase) GetBusinessTransactionDetail(ctx context.Context, transactionID string) (*models.BusinessTransactionDetail, error) {
+	if u.db == nil {
+		return nil, fmt.Errorf("database connection is not initialized")
+	}
+
+	trimmedID := strings.TrimSpace(transactionID)
+	if trimmedID == "" {
+		return nil, fmt.Errorf("transaction id is required")
+	}
+
+	var transaction models.BusinessTransaction
+	if err := u.db.WithContext(ctx).First(&transaction, "id = ?", trimmedID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrBusinessTransactionNotFound
+		}
+		return nil, err
+	}
+
+	var confidence models.BusinessAIConfidence
+	confidenceResult := u.db.WithContext(ctx).
+		Where("transaction_id = ?", trimmedID).
+		Order("created_at DESC").
+		First(&confidence)
+	if confidenceResult.Error != nil && !errors.Is(confidenceResult.Error, gorm.ErrRecordNotFound) {
+		return nil, confidenceResult.Error
+	}
+
+	var items []models.TransactionBusinessItem
+	if err := u.db.WithContext(ctx).
+		Where("transaction_business_id = ?", trimmedID).
+		Order("created_at ASC").
+		Find(&items).Error; err != nil {
+		return nil, err
+	}
+
+	detail := &models.BusinessTransactionDetail{
+		ID:            transaction.ID,
+		InvoiceNumber: strings.TrimSpace(transaction.InvoiceNumber),
+		Date:          transaction.TransactionDate.Format("02 Jan 2006"),
+		Time:          transaction.CreatedAt.Format("15:04"),
+		Vendor:        transaction.Vendor,
+		Amount:        transaction.Amount,
+		COA:           transaction.COA,
+		Status:        transaction.Status,
+		Score:         roundScore(transaction.ScoreAI),
+		Items:         make([]models.BusinessTransactionItemDetail, 0, len(items)),
+	}
+
+	if !errors.Is(confidenceResult.Error, gorm.ErrRecordNotFound) {
+		detail.BusinessAIConfidence = &models.BusinessAIConfidenceDetail{
+			ConfidenceScore:       roundScore(confidence.ConfidenceScore),
+			ConfidenceLevel:       confidence.ConfidenceLevel,
+			COARecommendation:     confidence.COARecommendation,
+			HistoryMatchScore:     roundScore(confidence.HistoryMatchScore),
+			VendorMatchScore:      roundScore(confidence.VendorMatchScore),
+			AmountPatternScore:    roundScore(confidence.AmountPatternScore),
+			KeywordMatchScore:     roundScore(confidence.KeywordMatchScore),
+			FrequencyPatternScore: roundScore(confidence.FrequencyPatternScore),
+		}
+	}
+
+	for _, item := range items {
+		qty := item.Quantity
+		unitPrice := item.UnitPrice
+		detail.Items = append(detail.Items, models.BusinessTransactionItemDetail{
+			ID:              item.ID,
+			ItemName:        item.ItemName,
+			ItemDescription: item.ItemDescription,
+			Quantity:        qty,
+			UnitPrice:       unitPrice,
+			Total:           qty * unitPrice,
+		})
+	}
+
+	return detail, nil
 }
 
 func parseJournalDate(input string, fallback time.Time) (time.Time, error) {
