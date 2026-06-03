@@ -125,11 +125,53 @@ function DetailDrawer({
   isLoading: boolean;
 }) {
   const [selectedCoa, setSelectedCoa] = useState(coaOptions[0]);
+  const [drawerWidth, setDrawerWidth] = useState(640);
+  const resizeStateRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
   useEffect(() => {
     const initialCoa = detail?.business_ai_confidence?.coa_recommendation || detail?.coa || coaOptions[0];
     setSelectedCoa(initialCoa);
   }, [detail?.id, detail?.coa, detail?.business_ai_confidence?.coa_recommendation]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!resizeStateRef.current) return;
+
+      const maxWidth = Math.max(520, window.innerWidth - 24);
+      const delta = resizeStateRef.current.startX - event.clientX;
+      const nextWidth = Math.min(maxWidth, Math.max(520, resizeStateRef.current.startWidth + delta));
+      setDrawerWidth(nextWidth);
+    };
+
+    const handleMouseUp = () => {
+      resizeStateRef.current = null;
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [open]);
+
+  const handleResizeStart = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    resizeStateRef.current = {
+      startX: event.clientX,
+      startWidth: drawerWidth,
+    };
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+  };
 
   const confidence = detail?.business_ai_confidence;
 
@@ -138,10 +180,19 @@ function DetailDrawer({
       {open && <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-40" onClick={onClose} />}
 
       <div
-        className={`fixed top-0 right-0 h-full w-[560px] bg-white shadow-2xl z-50 border-l border-slate-200 flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        className={`fixed top-0 right-0 h-full bg-white shadow-2xl z-50 border-l border-slate-200 flex flex-col overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
+        style={{ width: `${drawerWidth}px`, maxWidth: 'calc(100vw - 24px)' }}
       >
+        <div
+          className="absolute left-0 top-0 bottom-0 w-3 cursor-col-resize group"
+          onMouseDown={handleResizeStart}
+          aria-label="Resize detail drawer"
+        >
+          <div className="absolute left-1 top-1/2 h-20 w-px -translate-y-1/2 bg-slate-200 group-hover:bg-indigo-300 transition-colors" />
+        </div>
+
         <div className="p-6 border-b border-slate-100 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2 flex-wrap">
@@ -205,14 +256,14 @@ function DetailDrawer({
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{detail.items.length} item</span>
                 </div>
                 <div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                  <table className="w-full text-xs text-left">
+                  <table className="w-full min-w-[720px] text-xs text-left">
                     <thead className="bg-slate-50 border-b border-slate-100">
                       <tr>
                         <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-tighter">Item</th>
                         <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-tighter">Deskripsi</th>
                         <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-tighter text-right">Qty</th>
-                        <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-tighter text-right">Harga Satuan</th>
-                        <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-tighter text-right">Subtotal</th>
+                        <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-tighter text-right">Debit</th>
+                        <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-tighter text-right">Kredit</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -226,7 +277,6 @@ function DetailDrawer({
                             <td className="px-4 py-3 font-semibold text-slate-900">{item.item_name}</td>
                             <td className="px-4 py-3 text-slate-500">{item.item_description || '-'}</td>
                             <td className="px-4 py-3 text-right font-medium">{item.quantity}</td>
-                            <td className="px-4 py-3 text-right font-medium">Rp {formatMoney(item.unit_price)}</td>
                             <td className="px-4 py-3 text-right font-bold">Rp {formatMoney(item.total)}</td>
                           </tr>
                         ))
