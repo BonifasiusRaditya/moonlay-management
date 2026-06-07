@@ -42,11 +42,7 @@ type BusinessAIConfidenceDetail = {
   confidence_score: number;
   confidence_level: string;
   coa_recommendation: string;
-  history_match_score: number;
-  vendor_match_score: number;
-  amount_pattern_score: number;
-  keyword_match_score: number;
-  frequency_pattern_score: number;
+  reasoning?: string;
 };
 
 type BusinessTransactionDetail = {
@@ -298,7 +294,11 @@ function DetailDrawer({
                   <span className="text-[10px] font-bold text-emerald-600 uppercase">{confidence?.confidence_level || 'Tidak ada data confidence'}</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Confidence Score</p>
+                    <p className="text-sm font-bold text-slate-900">{typeof confidence?.confidence_score === 'number' ? `${confidence.confidence_score}%` : '-'}</p>
+                  </div>
                   <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Confidence Level</p>
                     <p className="text-sm font-bold text-slate-900">{confidence?.confidence_level || '-'}</p>
@@ -307,23 +307,6 @@ function DetailDrawer({
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">COA Recommendation</p>
                     <p className="text-sm font-bold text-indigo-700">{confidence?.coa_recommendation || '-'}</p>
                   </div>
-                  {[
-                    ['History Match', confidence?.history_match_score],
-                    ['Vendor Match', confidence?.vendor_match_score],
-                    ['Amount Pattern', confidence?.amount_pattern_score],
-                    ['Keyword Match', confidence?.keyword_match_score],
-                    ['Frequency Pattern', confidence?.frequency_pattern_score],
-                  ].map(([label, value]) => (
-                    <div key={label as string} className="bg-slate-50 rounded-xl border border-slate-100 p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label as string}</p>
-                        <span className="text-xs font-black text-slate-700">{typeof value === 'number' ? `${value}%` : '-'}</span>
-                      </div>
-                      <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
-                        <div className="h-full bg-indigo-600" style={{ width: `${typeof value === 'number' ? Math.max(0, Math.min(100, value)) : 0}%` }} />
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </section>
 

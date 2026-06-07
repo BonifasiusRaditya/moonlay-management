@@ -49,27 +49,6 @@ Table business_ai_confidence {
   confidence_score float
   confidence_level varchar
   coa_recommendation varchar
-  history_match_score float
-  history_match_weight float
-  history_match_reason text
-  vendor_match_score float
-  vendor_match_weight float
-  vendor_match_reason text
-  amount_pattern_score float
-  amount_pattern_weight float
-  amount_pattern_historical_average decimal
-  amount_pattern_difference_percentage float
-  amount_pattern_reason text
-  keyword_match_score float
-  keyword_match_weight float
-  keyword_match_reason text
-  frequency_pattern_score float
-  frequency_pattern_weight float
-  frequency_pattern_reason text
-  summary_most_similar_transaction varchar
-  summary_risk_level varchar
-  summary_recommendation text
-  summary_invoice_type_prediction varchar
-  status boolean
+  reasoning varchar
   created_at timestamptz [not null]
 }

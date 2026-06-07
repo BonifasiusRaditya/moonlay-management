@@ -300,27 +300,7 @@ type aiConfidenceBusinessConfidence struct {
 	ConfidenceScore                   float64  `json:"confidence_score"`
 	ConfidenceLevel                   string   `json:"confidence_level"`
 	COARecommendation                 string   `json:"coa_recommendation"`
-	HistoryMatchScore                 float64  `json:"history_match_score"`
-	HistoryMatchWeight                float64  `json:"history_match_weight"`
-	HistoryMatchReason                string   `json:"history_match_reason"`
-	VendorMatchScore                  float64  `json:"vendor_match_score"`
-	VendorMatchWeight                 float64  `json:"vendor_match_weight"`
-	VendorMatchReason                 string   `json:"vendor_match_reason"`
-	AmountPatternScore                float64  `json:"amount_pattern_score"`
-	AmountPatternWeight               float64  `json:"amount_pattern_weight"`
-	AmountPatternHistoricalAverage    *float64 `json:"amount_pattern_historical_average"`
-	AmountPatternDifferencePercentage float64  `json:"amount_pattern_difference_percentage"`
-	AmountPatternReason               string   `json:"amount_pattern_reason"`
-	KeywordMatchScore                 float64  `json:"keyword_match_score"`
-	KeywordMatchWeight                float64  `json:"keyword_match_weight"`
-	KeywordMatchReason                string   `json:"keyword_match_reason"`
-	FrequencyPatternScore             float64  `json:"frequency_pattern_score"`
-	FrequencyPatternWeight            float64  `json:"frequency_pattern_weight"`
-	FrequencyPatternReason            string   `json:"frequency_pattern_reason"`
-	SummaryMostSimilarTransaction     string   `json:"summary_most_similar_transaction"`
-	SummaryRiskLevel                  string   `json:"summary_risk_level"`
-	SummaryRecommendation             string   `json:"summary_recommendation"`
-	SummaryInvoiceTypePrediction      string   `json:"summary_invoice_type_prediction"`
+	Reasoning                         string   `json:"reasoning"`
 }
 
 func decodeAIConfidenceEntries(body []byte, defaultDocumentID string) ([]models.JournalEntryRequest, []aiConfidenceTransactionItem, error) {
@@ -410,41 +390,7 @@ func aiConfidenceDataToJournalEntry(data aiConfidenceWebhookData, defaultDocumen
 		ConfidenceScore:   confidence.ConfidenceScore,
 		COARecommendation: strings.TrimSpace(confidence.COARecommendation),
 		ConfidenceLevel:   strings.TrimSpace(confidence.ConfidenceLevel),
-		Analysis: models.JournalAnalysisBundle{
-			HistoryMatch: models.JournalAnalysisSection{
-				Score:  confidence.HistoryMatchScore,
-				Weight: confidence.HistoryMatchWeight,
-				Reason: strings.TrimSpace(confidence.HistoryMatchReason),
-			},
-			VendorMatch: models.JournalAnalysisSection{
-				Score:  confidence.VendorMatchScore,
-				Weight: confidence.VendorMatchWeight,
-				Reason: strings.TrimSpace(confidence.VendorMatchReason),
-			},
-			AmountPattern: models.JournalAnalysisSection{
-				Score:                confidence.AmountPatternScore,
-				Weight:               confidence.AmountPatternWeight,
-				HistoricalAverage:    derefFloat64(confidence.AmountPatternHistoricalAverage),
-				DifferencePercentage: confidence.AmountPatternDifferencePercentage,
-				Reason:               strings.TrimSpace(confidence.AmountPatternReason),
-			},
-			KeywordMatch: models.JournalAnalysisSection{
-				Score:  confidence.KeywordMatchScore,
-				Weight: confidence.KeywordMatchWeight,
-				Reason: strings.TrimSpace(confidence.KeywordMatchReason),
-			},
-			FrequencyPattern: models.JournalAnalysisSection{
-				Score:  confidence.FrequencyPatternScore,
-				Weight: confidence.FrequencyPatternWeight,
-				Reason: strings.TrimSpace(confidence.FrequencyPatternReason),
-			},
-		},
-		Summary: models.JournalSummarySection{
-			MostSimilarTransaction: strings.TrimSpace(confidence.SummaryMostSimilarTransaction),
-			RiskLevel:              strings.TrimSpace(confidence.SummaryRiskLevel),
-			Recommendation:         strings.TrimSpace(confidence.SummaryRecommendation),
-			InvoiceTypePrediction:  strings.TrimSpace(confidence.SummaryInvoiceTypePrediction),
-		},
+		Reasoning:         strings.TrimSpace(confidence.Reasoning),
 	}, nil
 }
 
@@ -662,32 +608,12 @@ func (u *BusinessUsecase) AddJournalEntries(ctx context.Context, entries []model
 			log.Printf("business.add-journal-entries: transaction inserted id=%s invoice=%s vendor=%s amount=%.2f", transactionID, entry.InvoiceNumber, entry.Vendor, entry.Amount)
 
 			confidence := models.BusinessAIConfidence{
-				TransactionID:                     transactionID,
-				ConfidenceScore:                   entry.ConfidenceScore,
-				ConfidenceLevel:                   strings.TrimSpace(entry.ConfidenceLevel),
-				COARecommendation:                 strings.TrimSpace(entry.COARecommendation),
-				HistoryMatchScore:                 entry.Analysis.HistoryMatch.Score,
-				HistoryMatchWeight:                entry.Analysis.HistoryMatch.Weight,
-				HistoryMatchReason:                entry.Analysis.HistoryMatch.Reason,
-				VendorMatchScore:                  entry.Analysis.VendorMatch.Score,
-				VendorMatchWeight:                 entry.Analysis.VendorMatch.Weight,
-				VendorMatchReason:                 entry.Analysis.VendorMatch.Reason,
-				AmountPatternScore:                entry.Analysis.AmountPattern.Score,
-				AmountPatternWeight:               entry.Analysis.AmountPattern.Weight,
-				AmountPatternHistoricalAverage:    nullIfZeroFloat64(entry.Analysis.AmountPattern.HistoricalAverage),
-				AmountPatternDifferencePercentage: entry.Analysis.AmountPattern.DifferencePercentage,
-				AmountPatternReason:               entry.Analysis.AmountPattern.Reason,
-				KeywordMatchScore:                 entry.Analysis.KeywordMatch.Score,
-				KeywordMatchWeight:                entry.Analysis.KeywordMatch.Weight,
-				KeywordMatchReason:                entry.Analysis.KeywordMatch.Reason,
-				FrequencyPatternScore:             entry.Analysis.FrequencyPattern.Score,
-				FrequencyPatternWeight:            entry.Analysis.FrequencyPattern.Weight,
-				FrequencyPatternReason:            entry.Analysis.FrequencyPattern.Reason,
-				SummaryMostSimilarTransaction:     strings.TrimSpace(entry.Summary.MostSimilarTransaction),
-				SummaryRiskLevel:                  strings.TrimSpace(entry.Summary.RiskLevel),
-				SummaryRecommendation:             strings.TrimSpace(entry.Summary.Recommendation),
-				SummaryInvoiceTypePrediction:      strings.TrimSpace(entry.Summary.InvoiceTypePrediction),
-				CreatedAt:                         now,
+				TransactionID:     transactionID,
+				ConfidenceScore:   entry.ConfidenceScore,
+				ConfidenceLevel:   strings.TrimSpace(entry.ConfidenceLevel),
+				COARecommendation: strings.TrimSpace(entry.COARecommendation),
+				Reasoning:         buildBusinessAIReasoning(entry),
+				CreatedAt:         now,
 			}
 
 			if err := tx.Create(&confidence).Error; err != nil {
@@ -843,14 +769,10 @@ func (u *BusinessUsecase) GetBusinessTransactionDetail(ctx context.Context, tran
 
 	if !errors.Is(confidenceResult.Error, gorm.ErrRecordNotFound) {
 		detail.BusinessAIConfidence = &models.BusinessAIConfidenceDetail{
-			ConfidenceScore:       roundScore(confidence.ConfidenceScore),
-			ConfidenceLevel:       confidence.ConfidenceLevel,
-			COARecommendation:     confidence.COARecommendation,
-			HistoryMatchScore:     roundScore(confidence.HistoryMatchScore),
-			VendorMatchScore:      roundScore(confidence.VendorMatchScore),
-			AmountPatternScore:    roundScore(confidence.AmountPatternScore),
-			KeywordMatchScore:     roundScore(confidence.KeywordMatchScore),
-			FrequencyPatternScore: roundScore(confidence.FrequencyPatternScore),
+			ConfidenceScore:   roundScore(confidence.ConfidenceScore),
+			ConfidenceLevel:   confidence.ConfidenceLevel,
+			COARecommendation: confidence.COARecommendation,
+			Reasoning:         confidence.Reasoning,
 		}
 	}
 
@@ -910,11 +832,36 @@ func deriveJournalStatus(entry models.JournalEntryRequest) string {
 	}
 
 	confidence := strings.ToLower(strings.TrimSpace(entry.ConfidenceLevel))
-	risk := strings.ToLower(strings.TrimSpace(entry.Summary.RiskLevel))
+	risk := strings.ToLower(strings.TrimSpace(entry.Reasoning))
 	if strings.Contains(confidence, "high") || strings.Contains(risk, "low") {
 		return "verified"
 	}
 	return "review"
+}
+
+func buildBusinessAIReasoning(entry models.JournalEntryRequest) string {
+	if trimmed := strings.TrimSpace(entry.Reasoning); trimmed != "" {
+		return trimmed
+	}
+
+	reasons := make([]string, 0, 5)
+	for _, reason := range []string{
+		entry.Analysis.HistoryMatch.Reason,
+		entry.Analysis.VendorMatch.Reason,
+		entry.Analysis.AmountPattern.Reason,
+		entry.Analysis.KeywordMatch.Reason,
+		entry.Analysis.FrequencyPattern.Reason,
+	} {
+		if trimmed := strings.TrimSpace(reason); trimmed != "" {
+			reasons = append(reasons, trimmed)
+		}
+	}
+
+	if len(reasons) > 0 {
+		return strings.Join(reasons, " | ")
+	}
+
+	return strings.TrimSpace(entry.Reasoning)
 }
 
 func nullableStringPtr(value string) *string {
