@@ -21,20 +21,32 @@
       {
         "name": "transactions_business",
         "schemaName": "public",
-        "x": 423.4666997189169,
-        "y": 426.56768964933553
+        "x": 425.03718674318793,
+        "y": 432.8496377464194
       },
       {
         "name": "business_ai_confidence",
         "schemaName": "public",
-        "x": 753.1668623489743,
-        "y": 108.19100479708155
+        "x": 52.929189226851506,
+        "y": 1027.0540348767204
       },
       {
         "name": "transaction_business_items",
         "schemaName": "public",
         "x": 17.4789978673425,
         "y": 620.3614215869362
+      },
+      {
+        "name": "bank_statements_list",
+        "schemaName": "public",
+        "x": 420.66750968925476,
+        "y": 902.550108134486
+      },
+      {
+        "name": "bank_statement",
+        "schemaName": "public",
+        "x": 847.1709468179519,
+        "y": 548.9872130518951
       }
     ],
     "tableGroupCollapseStates": [],
@@ -96,6 +108,171 @@
           "transaction_business_id"
         ],
         "secondTableName": "transaction_business_items",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "documents",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "document_id"
+        ],
+        "secondTableName": "bank_statements",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "documents",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "document_id"
+        ],
+        "secondTableName": "bank_statements_",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "documents",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "document_id"
+        ],
+        "secondTableName": "bank_statements_l",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "documents",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "document_id"
+        ],
+        "secondTableName": "bank_statements_li",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "documents",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "document_id"
+        ],
+        "secondTableName": "bank_statements_lis",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "documents",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "document_id"
+        ],
+        "secondTableName": "bank_statements_list",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "bank_statements_list",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "bank_statements_list_id"
+        ],
+        "secondTableName": "bank_statement",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "documents",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "document_id"
+        ],
+        "secondTableName": "bank_statement",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "bank_statements_list",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "document_id"
+        ],
+        "secondTableName": "bank_statements_list",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "bank_statement",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "document_id"
+        ],
+        "secondTableName": "bank_statements_list",
+        "secondSchemaName": "public",
+        "secondRelation": "*",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "id"
+        ],
+        "firstTableName": "transaction_business_items",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "transaction_id"
+        ],
+        "secondTableName": "business_ai_confidence",
         "secondSchemaName": "public",
         "secondRelation": "*",
         "checkPoints": []

@@ -19,10 +19,11 @@ CREATE TABLE IF NOT EXISTS documents (
   uploaded_at timestamptz NOT NULL DEFAULT now()
 );
 
+drop table if exists transactions_business cascade;
 CREATE TABLE IF NOT EXISTS transactions_business (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   document_id uuid REFERENCES documents(id) ON DELETE SET NULL,
-  invoice_number varchar,
+  invoice_number varchar NOT NULL,
   transaction_date date NOT NULL,
   vendor varchar NOT NULL,
   amount numeric(18,2) NOT NULL,
@@ -61,3 +62,17 @@ CREATE INDEX transaction_business_items_transaction_business_id_idx ON transacti
 CREATE INDEX business_ai_confidence_transaction_id_idx ON business_ai_confidence(transaction_id); 
 
 -- End of schema
+
+-- Delete data from tables
+DELETE FROM business_ai_confidence;
+DELETE FROM transaction_business_items;
+DELETE FROM transactions_business;
+DELETE FROM documents;
+DELETE FROM users;
+
+-- See all data in tables
+SELECT * FROM users;
+SELECT * FROM documents;
+SELECT * FROM transactions_business;
+SELECT * FROM transaction_business_items;
+SELECT * FROM business_ai_confidence;

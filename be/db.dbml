@@ -21,6 +21,8 @@ Table transactions_business {
   id uuid [primary key]
   document_id uuid [ref: > documents.id]
   invoice_number varchar
+  department varchar [not null]
+  project_name varchar [not null] 
   transaction_date date [not null]
   vendor varchar [not null]
   amount decimal [not null]
@@ -50,5 +52,25 @@ Table business_ai_confidence {
   confidence_level varchar
   coa_recommendation varchar
   reasoning varchar
+  created_at timestamptz [not null]
+}
+
+Table bank_statements_list {
+  id uuid [primary key]
+  document_id uuid [ref: > bank_statement.id]
+  remarks varchar
+  debit decimal
+  credit decimal
+  balance decimal
+  created_at timestamptz [not null]
+}
+
+Table bank_statement{
+  id uuid [primary key]
+  document_id uuid [ref: > documents.id]
+  account_number varchar
+  account_name varchar
+  opening_balance decimal
+  closing_balance decimal
   created_at timestamptz [not null]
 }

@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { PageTransition } from '@/components/page_transition';
 import { requireAuthBeforeLoad } from '@/utils/route_guards';
+import { apiClient } from '@/api/client';
 import {
   Bot,
   Check,
@@ -371,24 +372,20 @@ function TransaksiBisnisPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'pending'>('all');
   const [isUploading, setIsUploading] = useState(false);
   const [transactions, setTransactions] = useState<BusinessTransaction[]>([]);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [vendorFilter, setVendorFilter] = useState('');
+  const [coaFilterSelected, setCoaFilterSelected] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
-  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
 
   useEffect(() => {
     const loadTransactions = async () => {
       setIsLoadingTransactions(true);
       try {
-        const response = await fetch(`${apiBaseUrl}/business/transactions`, {
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          throw new Error('Gagal memuat transaksi bisnis');
-        }
-
-        const data = (await response.json()) as BusinessTransaction[];
-        setTransactions(data);
+        const response = await apiClient.get<BusinessTransaction[]>('/business/transactions');
+        setTransactions(response.data);
       } catch (error) {
         console.error('Gagal memuat transaksi bisnis:', error);
         setTransactions([]);
@@ -398,7 +395,7 @@ function TransaksiBisnisPage() {
     };
 
     void loadTransactions();
-  }, [apiBaseUrl]);
+  }, []);
 
   useEffect(() => {
     if (!drawerOpen || !selectedTransactionId) {
@@ -410,17 +407,10 @@ function TransaksiBisnisPage() {
     const loadTransactionDetail = async () => {
       setIsDetailLoading(true);
       try {
-        const response = await fetch(`${apiBaseUrl}/business/transactions/${selectedTransactionId}`, {
-          credentials: 'include',
+        const response = await apiClient.get<BusinessTransactionDetail>(`/business/transactions/${selectedTransactionId}`, {
           signal: controller.signal,
         });
-
-        if (!response.ok) {
-          throw new Error('Gagal memuat detail transaksi bisnis');
-        }
-
-        const data = (await response.json()) as BusinessTransactionDetail;
-        setSelectedTransactionDetail(data);
+        setSelectedTransactionDetail(response.data);
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
           return;
@@ -435,7 +425,7 @@ function TransaksiBisnisPage() {
     void loadTransactionDetail();
 
     return () => controller.abort();
-  }, [apiBaseUrl, drawerOpen, selectedTransactionId]);
+  }, [drawerOpen, selectedTransactionId]);
 
   const handleOpenTransactionDetail = (transactionId: string) => {
     setSelectedTransactionId(transactionId);
@@ -451,6 +441,14 @@ function TransaksiBisnisPage() {
 
   const handleImportClick = () => uploadInputRef.current?.click();
 
+  const handleClearFilters = () => {
+    setStartDate('');
+    setEndDate('');
+    setVendorFilter('');
+    setCoaFilterSelected('');
+    setStatusFilter('');
+  };
+
   const handleUploadDocument = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -460,26 +458,11 @@ function TransaksiBisnisPage() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(`${apiBaseUrl}/business/import-document`, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
+      await apiClient.post('/business/import-document', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
-
-      if (!response.ok) {
-        let errorMessage = 'Upload gagal';
-        try {
-          const payload = (await response.json()) as ImportDocumentResponse;
-          errorMessage = payload?.message || errorMessage;
-        } catch {
-          try {
-            errorMessage = (await response.text()) || errorMessage;
-          } catch {
-            errorMessage = errorMessage;
-          }
-        }
-        throw new Error(errorMessage);
-      }
 
       alert('Berhasil di upload');
     } catch (error) {
@@ -492,16 +475,41 @@ function TransaksiBisnisPage() {
     }
   };
 
+  const vendorOptions = Array.from(new Set(transactions.map((t) => t.vendor))).filter(Boolean).sort();
+  const coaOptionsFromData = Array.from(new Set(transactions.map((t) => t.coa))).filter(Boolean).sort();
+  const statusOptionsFromData = Array.from(new Set(transactions.map((t) => t.status))).filter(Boolean).sort();
+
   const filtered = transactions.filter((t) => {
     const q = search.toLowerCase();
     const matchSearch = !q || t.vendor.toLowerCase().includes(q) || t.coa.toLowerCase().includes(q);
     const matchTab = activeTab === 'all' || t.status === 'review';
-    return matchSearch && matchTab;
+
+    let matchDate = true;
+    if (startDate) {
+      try {
+        matchDate = new Date(t.date) >= new Date(startDate);
+      } catch {
+        matchDate = true;
+      }
+    }
+    if (endDate && matchDate) {
+      try {
+        matchDate = new Date(t.date) <= new Date(endDate);
+      } catch {
+        matchDate = matchDate;
+      }
+    }
+
+    const matchVendor = !vendorFilter || t.vendor === vendorFilter;
+    const matchCoa = !coaFilterSelected || t.coa === coaFilterSelected;
+    const matchStatus = !statusFilter || t.status === statusFilter;
+
+    return matchSearch && matchTab && matchDate && matchVendor && matchCoa && matchStatus;
   });
 
   return (
     <PageTransition>
-      <div className="flex-1 p-8 lg:p-10 max-w-[1600px]">
+      <div className="flex-1 p-8 lg:p-10">
         <header className="flex justify-between items-end mb-10">
           <div>
             <div className="flex items-center gap-2 text-slate-400 text-sm font-medium mb-1">
@@ -513,7 +521,6 @@ function TransaksiBisnisPage() {
           </div>
           <div className="flex items-center gap-3">
             <input ref={uploadInputRef} type="file" className="hidden" onChange={handleUploadDocument} />
-            <button className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-all"><FileText size={16} />Ekspor</button>
             <button onClick={handleImportClick} disabled={isUploading} className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-indigo-700 text-white text-sm font-bold shadow-lg hover:bg-indigo-800 transition-all disabled:opacity-70 disabled:cursor-not-allowed"><Upload size={16} />{isUploading ? 'Mengunggah...' : 'Impor Dokumen'}</button>
           </div>
         </header>
@@ -534,7 +541,76 @@ function TransaksiBisnisPage() {
                     <input value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-100 w-56 transition-all outline-none" placeholder="Cari vendor atau no. akun..." />
                     <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   </div>
-                  <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors"><Filter size={14} />Filter</button>
+
+                  <DropdownMenu.Root>
+                    <DropdownMenu.Trigger asChild>
+                      <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors"><Filter size={14} />Filter</button>
+                    </DropdownMenu.Trigger>
+
+                    <DropdownMenu.Portal>
+                      <DropdownMenu.Content className="bg-white rounded-xl border border-slate-200 shadow-xl p-4 z-[200] min-w-[280px]" sideOffset={8}>
+                        <div className="grid gap-2">
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tanggal</label>
+                            <div className="flex gap-2 mt-2">
+                              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm w-full" />
+                              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm w-full" />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vendor</label>
+                            <select value={vendorFilter} onChange={(e) => setVendorFilter(e.target.value)} className="mt-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm w-full">
+                              <option value="">Semua Vendor</option>
+                              {vendorOptions.map((v) => (
+                                <option key={v} value={v}>{v}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">COA</label>
+                            <select value={coaFilterSelected} onChange={(e) => setCoaFilterSelected(e.target.value)} className="mt-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm w-full">
+                              <option value="">Semua COA</option>
+                              {coaOptionsFromData.length > 0 ? (
+                                coaOptionsFromData.map((c) => (
+                                  <option key={c} value={c}>{c}</option>
+                                ))
+                              ) : (
+                                coaOptions.map((c) => (
+                                  <option key={c} value={c}>{c}</option>
+                                ))
+                              )}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</label>
+                            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="mt-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm w-full">
+                              <option value="">Semua Status</option>
+                              {statusOptionsFromData.length > 0 ? (
+                                statusOptionsFromData.map((s) => (
+                                  <option key={s} value={s}>{s === 'verified' ? 'Verified' : s === 'review' ? 'Perlu Review' : s}</option>
+                                ))
+                              ) : (
+                                <>
+                                  <option value="verified">Verified</option>
+                                  <option value="review">Perlu Review</option>
+                                </>
+                              )}
+                            </select>
+                          </div>
+
+                          <div className="flex justify-end gap-2 mt-2">
+                            <button onClick={handleClearFilters} className="px-3 py-2 rounded-lg border border-slate-200 text-slate-600 text-sm">Clear</button>
+                            <DropdownMenu.Item asChild>
+                              <button className="px-3 py-2 rounded-lg bg-indigo-700 text-white text-sm">Apply</button>
+                            </DropdownMenu.Item>
+                          </div>
+                        </div>
+                      </DropdownMenu.Content>
+                    </DropdownMenu.Portal>
+                  </DropdownMenu.Root>
                 </div>
               </div>
 

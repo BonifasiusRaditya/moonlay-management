@@ -47,8 +47,8 @@ export function Navbar({ currentPath, navItems }: NavbarProps) {
   const pageTitle = currentPage?.label || 'Dashboard';
 
   return (
-    <nav className="flex h-20 w-full items-center justify-between px-6 bg-slate-100/50 backdrop-blur-s m"> 
-      <div className="flex items-center justify-between">
+    <nav className="flex h-20 w-full items-center justify-end px-6 bg-slate-100/50 backdrop-blur-s m"> 
+      <div className="flex items-center justify-end">
         <div className="flex items-center gap-8">
           <div className="hidden items-center md:flex">
             { isDashboard && (
