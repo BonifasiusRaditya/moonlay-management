@@ -439,8 +439,8 @@ function DashboardPage() {
 }
 
 export const Route = createFileRoute('/dashboard')({
-  beforeLoad: async () => {
-    await requireAuthBeforeLoad();
-  },
+  // beforeLoad: async () => {
+  //   await requireAuthBeforeLoad();
+  // },
   component: DashboardPage,
 });

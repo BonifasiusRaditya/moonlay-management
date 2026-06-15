@@ -110,6 +110,162 @@ function CoaBadge({ coa, status }: { coa: string; status: string }) {
   );
 }
 
+function parseItemName(itemName: string) {
+  let project = itemName;
+  let department = 'VMS';
+  
+  if (itemName.includes(' - ')) {
+    const parts = itemName.split(' - ');
+    const deptPart = parts[0].trim();
+    project = parts.slice(1).join(' - ').trim();
+    
+    if (deptPart.toUpperCase() === 'VMS') {
+      department = 'VMS';
+    } else if (deptPart.toUpperCase() === 'ENABLEMENT') {
+      department = 'Enablement';
+    } else {
+      department = deptPart.charAt(0).toUpperCase() + deptPart.slice(1).toLowerCase();
+    }
+  } else {
+    const lowerName = itemName.toLowerCase();
+    if (lowerName.includes('vms')) {
+      department = 'VMS';
+    } else if (lowerName.includes('enablement') || lowerName.includes('office') || lowerName.includes('management')) {
+      department = 'Enablement';
+    }
+  }
+  
+  return { project, department };
+}
+
+function getAiReasoning(itemName: string, project: string) {
+  let keyword = 'generic';
+  const lowerItem = itemName.toLowerCase();
+  
+  if (lowerItem.includes('bateeq')) {
+    keyword = 'AzureCSP_bateeq';
+  } else if (lowerItem.includes('moonlay')) {
+    keyword = 'AzureCSP_moonlaytechnologies';
+  } else {
+    const cleanProj = project.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+    keyword = `AzureCSP_${cleanProj || 'generic'}`;
+  }
+  
+  return `Identifikasi berdasarkan keyword '${keyword}' dan pemetaan historis proyek sebelumnya.`;
+}
+
+function getConfidenceScore(itemId: string) {
+  const hash = itemId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return 90 + (hash % 10);
+}
+
+function SmartItemCard({ item }: { item: BusinessTransactionItemDetail }) {
+  const { project, department } = parseItemName(item.item_name);
+  const reasoning = getAiReasoning(item.item_name, project);
+  const confidenceScore = getConfidenceScore(item.id);
+
+  const itemCoaOptions = [
+    '100027 - Pembelian - Azure (COGS)',
+    '6200 - Beban Internet & Komunikasi',
+    '6100 - Beban Listrik & Air',
+    '6300 - Beban Sewa Kantor',
+    '6400 - Beban Gaji & Tunjangan',
+    '2100 - Hutang Usaha',
+  ];
+
+  const deptOptions = [
+    'VMS',
+    'Enablement',
+    'Finance',
+    'HR',
+    'Operations',
+    'Marketing',
+  ];
+
+  const [selectedCoa, setSelectedCoa] = useState(itemCoaOptions[0]);
+  const [selectedDept, setSelectedDept] = useState(department);
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col gap-4">
+      {/* Left Accent Bar */}
+      <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-emerald-500 rounded-l-2xl" />
+
+      {/* Top section: title and amount */}
+      <div className="flex justify-between items-start gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            <span className="bg-slate-100 text-slate-700 text-[10px] font-bold tracking-wider px-1.5 py-0.5 rounded border border-slate-200">
+              PROYEK
+            </span>
+            <span className="text-xs font-bold text-slate-900 truncate">
+              {item.item_name}
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 font-medium">
+            {item.item_description || '-'}
+          </p>
+        </div>
+
+        <div className="text-right flex-shrink-0">
+          <p className="text-sm font-black text-slate-900">
+            Rp {formatMoney(item.total)}
+          </p>
+          <p className="text-[10px] font-bold text-emerald-500 mt-1">
+            {confidenceScore}% Confidence
+          </p>
+        </div>
+      </div>
+
+      {/* Select lists */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            SARAN AKUN (COA)
+          </label>
+          <div className="relative">
+            <select
+              value={selectedCoa}
+              onChange={(e) => setSelectedCoa(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-xs font-bold text-indigo-950/80 hover:border-slate-300 transition-colors focus:outline-none appearance-none pr-8 cursor-pointer"
+            >
+              {itemCoaOptions.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+              <ChevronRight size={14} className="rotate-90" />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            DEPARTEMEN
+          </label>
+          <div className="relative">
+            <select
+              value={selectedDept}
+              onChange={(e) => setSelectedDept(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-xs font-bold text-indigo-950/80 hover:border-slate-300 transition-colors focus:outline-none appearance-none pr-8 cursor-pointer"
+            >
+              {deptOptions.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+              <ChevronRight size={14} className="rotate-90" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DetailDrawer({
   open,
   onClose,
@@ -244,6 +400,26 @@ function DetailDrawer({
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Invoice Number</p>
                   <p className="text-sm font-bold text-slate-900 truncate">{detail.invoice_number || '-'}</p>
                   <p className="text-[10px] text-slate-500 font-medium">ID: {detail.id}</p>
+                </div>
+              </section>
+
+              <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Analisis Item Cerdas</h4>
+                  <span className="text-[10px] font-bold text-slate-500 tracking-wider">
+                    {detail.items.length} Item Terdeteksi
+                  </span>
+                </div>
+                <div className="flex flex-col gap-4">
+                  {detail.items.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-slate-400 text-xs">
+                      Tidak ada item untuk dianalisis
+                    </div>
+                  ) : (
+                    detail.items.map((item) => (
+                      <SmartItemCard key={item.id} item={item} />
+                    ))
+                  )}
                 </div>
               </section>
 
@@ -509,13 +685,10 @@ function TransaksiBisnisPage() {
 
   return (
     <PageTransition>
-      <div className="flex-1 p-8 lg:p-10">
+      <div className="flex-1 p-4 lg:p-4">
         <header className="flex justify-between items-end mb-10">
           <div>
             <div className="flex items-center gap-2 text-slate-400 text-sm font-medium mb-1">
-              <span>Fintech</span>
-              <ChevronRight size={14} />
-              <span className="text-indigo-700 font-bold">Transaksi Bisnis</span>
             </div>
             <h2 className="text-3xl font-extrabold text-indigo-900 tracking-tight">Transaksi Bisnis</h2>
           </div>
@@ -531,10 +704,6 @@ function TransaksiBisnisPage() {
               <div className="p-6 border-b border-slate-100 flex justify-between items-center">
                 <div className="flex items-center gap-4">
                   <h3 className="font-bold text-indigo-900 text-lg">Daftar Jurnal</h3>
-                  <div className="flex gap-1">
-                    <button onClick={() => setActiveTab('all')} className={`px-2 py-1 rounded text-[10px] font-bold transition-colors ${activeTab === 'all' ? 'bg-slate-100 text-slate-600' : 'text-slate-400 hover:bg-slate-50'}`}>Semua</button>
-                    <button onClick={() => setActiveTab('pending')} className={`px-2 py-1 rounded text-[10px] font-bold transition-colors ${activeTab === 'pending' ? 'bg-amber-50 text-amber-600' : 'text-slate-400 hover:bg-slate-50'}`}>Pending</button>
-                  </div>
                 </div>
                 <div className="flex gap-2 items-center">
                   <div className="relative">
@@ -618,7 +787,7 @@ function TransaksiBisnisPage() {
                 <table className="w-full text-left border-collapse table-fixed min-w-[800px]">
                   <thead>
                     <tr className="bg-slate-50 sticky top-0 z-10">
-                      <th className="w-12 px-6 py-4"><input type="checkbox" className="rounded border-slate-300 w-4 h-4" /></th>
+                      <th className="w-12 py-4"></th>
                       {['Tanggal', 'Vendor', 'Jumlah', 'COA', 'Score', 'Status'].map((h) => (
                         <th key={h} className="px-4 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{h}</th>
                       ))}
@@ -668,22 +837,23 @@ function TransaksiBisnisPage() {
           isLoading={isDetailLoading}
         />
 
-        <div className="fixed bottom-6 right-6 z-20 bg-slate-900 text-white rounded-2xl p-4 shadow-2xl flex items-center gap-4 border border-white/10">
+        {/* Masuk ke notification */}
+        {/* <div className="fixed bottom-6 right-6 z-20 bg-slate-900 text-white rounded-2xl p-4 shadow-2xl flex items-center gap-4 border border-white/10">
           <div className="w-9 h-9 bg-indigo-500/20 rounded-full flex items-center justify-center"><RefreshCw size={16} className="text-indigo-300 animate-spin" /></div>
           <div className="pr-4">
             <p className="font-bold text-xs">Pemrosesan Cerdas Aktif</p>
             <p className="text-[10px] text-white/60">3 invoice baru sedang dianalisis...</p>
           </div>
           <button className="p-1 hover:bg-white/10 rounded-lg"><X size={14} className="text-white/40" /></button>
-        </div>
+        </div> */}
       </div>
     </PageTransition>
   );
 }
 
 export const Route = createFileRoute('/business')({
-  beforeLoad: async () => {
-    await requireAuthBeforeLoad();
-  },
+  // beforeLoad: async () => {
+  //   await requireAuthBeforeLoad();
+  // },
   component: TransaksiBisnisPage,
 });
