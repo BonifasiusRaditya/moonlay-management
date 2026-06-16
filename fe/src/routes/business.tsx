@@ -26,6 +26,7 @@ type BusinessTransaction = {
   initials: string;
   amount: string;
   coa: string;
+  item_coas: string[];
   score: number;
   status: string;
 };
@@ -34,6 +35,7 @@ type BusinessTransactionItemDetail = {
   id: string;
   item_name: string;
   item_description: string;
+  coa: string;
   quantity: number;
   unit_price: number;
   total: number;
@@ -182,7 +184,7 @@ function SmartItemCard({ item }: { item: BusinessTransactionItemDetail }) {
     'Marketing',
   ];
 
-  const [selectedCoa, setSelectedCoa] = useState(itemCoaOptions[0]);
+  const [selectedCoa, setSelectedCoa] = useState(item.coa || itemCoaOptions[0]);
   const [selectedDept, setSelectedDept] = useState(department);
 
   return (
@@ -190,9 +192,9 @@ function SmartItemCard({ item }: { item: BusinessTransactionItemDetail }) {
       {/* Left Accent Bar */}
       <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-emerald-500 rounded-l-2xl" />
 
-      {/* Top section: title and amount */}
+      {/* Top section: title, COA badge, and amount */}
       <div className="flex justify-between items-start gap-4">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="bg-slate-100 text-slate-700 text-[10px] font-bold tracking-wider px-1.5 py-0.5 rounded border border-slate-200">
               PROYEK
@@ -204,6 +206,13 @@ function SmartItemCard({ item }: { item: BusinessTransactionItemDetail }) {
           <p className="text-xs text-slate-500 font-medium">
             {item.item_description || '-'}
           </p>
+          {item.coa && (
+            <div className="mt-2">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-bold rounded border border-indigo-100">
+                COA: {item.coa}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="text-right flex-shrink-0">
@@ -228,6 +237,9 @@ function SmartItemCard({ item }: { item: BusinessTransactionItemDetail }) {
               onChange={(e) => setSelectedCoa(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-xs font-bold text-indigo-950/80 hover:border-slate-300 transition-colors focus:outline-none appearance-none pr-8 cursor-pointer"
             >
+              {item.coa && !itemCoaOptions.includes(item.coa) && (
+                <option value={item.coa}>{item.coa}</option>
+              )}
               {itemCoaOptions.map((opt) => (
                 <option key={opt} value={opt}>
                   {opt}
@@ -804,15 +816,21 @@ function TransaksiBisnisPage() {
                       </tr>
                     )}
                     {filtered.map((t) => (
-                      <tr key={t.id} onClick={() => handleOpenTransactionDetail(t.id)} className="group hover:bg-slate-50/50 transition-all cursor-pointer">
-                        <td className="px-6 py-4"><input type="checkbox" className="rounded border-slate-300 w-4 h-4" onClick={(e) => e.stopPropagation()} /></td>
-                        <td className="px-4 py-4"><p className="font-bold text-indigo-800 text-sm">{t.date}</p><p className="text-[10px] text-slate-400 font-medium">{t.time}</p></td>
-                        <td className="px-4 py-4"><div className="flex items-center gap-2"><div className="w-7 h-7 rounded bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-600 flex-shrink-0">{t.initials}</div><p className="font-bold text-slate-900 text-sm truncate">{t.vendor}</p></div></td>
-                        <td className="px-4 py-4 text-right"><p className="font-bold text-slate-900 text-sm">{t.amount}</p><p className="text-[9px] text-slate-400 uppercase font-bold">IDR</p></td>
-                        <td className="px-4 py-4"><div className="flex items-center justify-center"><CoaBadge coa={t.coa} status={t.status} /></div></td>
-                        <td className="px-4 py-4 text-center"><span className={`text-xs font-bold ${t.status === 'verified' ? 'text-emerald-500' : 'text-amber-500'}`}>{t.score}%</span></td>
-                        <td className="px-6 py-4 text-center"><StatusBadge status={t.status} /></td>
-                      </tr>
+                        <tr key={t.id} onClick={() => handleOpenTransactionDetail(t.id)} className="group hover:bg-slate-50/50 transition-all cursor-pointer">
+                          <td className="px-6 py-4"><input type="checkbox" className="rounded border-slate-300 w-4 h-4" onClick={(e) => e.stopPropagation()} /></td>
+                          <td className="px-4 py-4"><p className="font-bold text-indigo-800 text-sm">{t.date}</p><p className="text-[10px] text-slate-400 font-medium">{t.time}</p></td>
+                          <td className="px-4 py-4"><div className="flex items-center gap-2"><div className="w-7 h-7 rounded bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-600 flex-shrink-0">{t.initials}</div><p className="font-bold text-slate-900 text-sm truncate">{t.vendor}</p></div></td>
+                          <td className="px-4 py-4 text-right"><p className="font-bold text-slate-900 text-sm">{t.amount}</p><p className="text-[9px] text-slate-400 uppercase font-bold">IDR</p></td>
+                          <td className="px-4 py-4">
+                            <div className="flex flex-wrap items-center gap-1">
+                              {(t.item_coas && t.item_coas.length > 0 ? t.item_coas : [t.coa]).filter(Boolean).map((c) => (
+                                <CoaBadge key={c} coa={c} status={t.status} />
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-center"><span className={`text-xs font-bold ${t.status === 'verified' ? 'text-emerald-500' : 'text-amber-500'}`}>{t.score}%</span></td>
+                          <td className="px-6 py-4 text-center"><StatusBadge status={t.status} /></td>
+                        </tr>
                     ))}
                   </tbody>
                 </table>

@@ -47,21 +47,23 @@ type JournalAnalysisBundle struct {
 }
 
 type BusinessTransactionListItem struct {
-	ID       string  `json:"id"`
-	Date     string  `json:"date"`
-	Time     string  `json:"time"`
-	Vendor   string  `json:"vendor"`
-	Initials string  `json:"initials"`
-	Amount   string  `json:"amount"`
-	COA      string  `json:"coa"`
-	Score    float64 `json:"score"`
-	Status   string  `json:"status"`
+	ID       string   `json:"id"`
+	Date     string   `json:"date"`
+	Time     string   `json:"time"`
+	Vendor   string   `json:"vendor"`
+	Initials string   `json:"initials"`
+	Amount   string   `json:"amount"`
+	COA      string   `json:"coa"`
+	ItemCOAs []string `json:"item_coas"`
+	Score    float64  `json:"score"`
+	Status   string   `json:"status"`
 }
 
 type BusinessTransactionItemDetail struct {
 	ID              string  `json:"id"`
 	ItemName        string  `json:"item_name"`
 	ItemDescription string  `json:"item_description"`
+	COA             string  `json:"coa"`
 	Quantity        float64 `json:"quantity"`
 	UnitPrice       float64 `json:"unit_price"`
 	Total           float64 `json:"total"`
@@ -125,7 +127,7 @@ type TransactionBusinessItem struct {
 	TransactionBusinessID string    `gorm:"column:transaction_business_id;type:uuid"`
 	ItemName              string    `gorm:"column:item_name"`
 	ItemDescription       string    `gorm:"column:item_description"`
-	Quantity              float64   `gorm:"column:quantity"`
+	COA                   string    `gorm:"column:coa"`
 	UnitPrice             float64   `gorm:"column:unit_price"`
 	CreatedAt             time.Time `gorm:"column:created_at"`
 }

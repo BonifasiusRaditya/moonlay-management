@@ -22,7 +22,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="fixed top-0 left-0 z-50 flex h-20 w-full items-center justify-between px-6 md:left-64 md:w-[calc(100%-16rem)] bg-slate-100/50 backdrop-blur-sm">
+      <header className="fixed top-0 left-0 z-30 flex h-20 w-full items-center justify-between px-6 md:left-64 md:w-[calc(100%-16rem)] bg-slate-100/50 backdrop-blur-sm">
         <Navbar currentPath={currentPath} navItems={[
           { href: '/dashboard', label: 'Dashboard' },
           { href: '/business', label: 'Transaksi Bisnis' },

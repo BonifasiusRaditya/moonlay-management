@@ -130,9 +130,13 @@ func (ctl *BusinessController) ImportDocument(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadGateway, upstreamBody)
 	}
 
+	msg := "Dokumen berhasil di upload dan disimpan"
+	if aiSavedCount > 0 {
+		msg = "Dokumen berhasil di upload, disimpan, dan diproses AI confidence"
+	}
 	log.Printf("business.import-document: success file=%s upstream_status=%d saved_count=%d ai_saved_count=%d", fileHeader.Filename, status, savedCount, aiSavedCount)
 	return c.JSON(http.StatusOK, models.FinanceImportResponse{
-		Message:                "Dokumen berhasil di upload, disimpan, dan diproses AI confidence",
+		Message:                msg,
 		Filename:               fileHeader.Filename,
 		UpstreamStatus:         status,
 		UpstreamBody:           upstreamBody,

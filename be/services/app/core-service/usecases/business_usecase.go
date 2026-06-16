@@ -112,15 +112,24 @@ func (u *BusinessUsecase) ImportDocument(ctx context.Context, filename string, c
 		"parse":       parseValue,
 	}
 
-	aiStatus, aiBody, err := u.postJSON(ctx, u.aiConfidenceURL, aiRequest, "business.ai-confidence.usecase")
-	if err != nil {
-		return aiStatus, aiBody, documentSavedCount, 0, err
+	_, aiBody, aiErr := u.postJSON(ctx, u.aiConfidenceURL, aiRequest, "business.ai-confidence.usecase")
+	if aiErr != nil {
+		// ai_confidence is non-fatal: document was already saved, return partial success
+		log.Printf("business.ai-confidence.usecase: webhook call failed (non-fatal) file=%s err=%v", filename, aiErr)
+		return status, body, documentSavedCount, 0, nil
 	}
 
-	entries, transactionItems, err := decodeAIConfidenceEntries([]byte(aiBody), savedDocumentID)
-	if err != nil {
-		log.Printf("business.ai-confidence.usecase: decode response failed file=%s err=%v body=%s", filename, err, aiBody)
-		return aiStatus, aiBody, documentSavedCount, 0, err
+	if strings.TrimSpace(aiBody) == "" {
+		// N8N returned empty body (workflow crashed before Respond to Webhook)
+		log.Printf("business.ai-confidence.usecase: empty response body (non-fatal) file=%s — ai_confidence skipped", filename)
+		return status, body, documentSavedCount, 0, nil
+	}
+
+	entries, transactionItems, decodeErr := decodeAIConfidenceEntries([]byte(aiBody), savedDocumentID)
+	if decodeErr != nil {
+		// Malformed response is non-fatal
+		log.Printf("business.ai-confidence.usecase: decode response failed (non-fatal) file=%s err=%v body=%s", filename, decodeErr, aiBody)
+		return status, body, documentSavedCount, 0, nil
 	}
 	for idx := range entries {
 		if strings.TrimSpace(entries[idx].Parse) == "" {
@@ -129,14 +138,14 @@ func (u *BusinessUsecase) ImportDocument(ctx context.Context, filename string, c
 	}
 	log.Printf("business.ai-confidence.usecase: decoded entries file=%s count=%d", filename, len(entries))
 
-	aiSavedItems, err := u.AddJournalEntries(ctx, entries, transactionItems)
-	if err != nil {
-		log.Printf("business.ai-confidence.usecase: db insert failed file=%s err=%v", filename, err)
-		return aiStatus, aiBody, documentSavedCount, 0, err
+	aiSavedItems, insertErr := u.AddJournalEntries(ctx, entries, transactionItems)
+	if insertErr != nil {
+		log.Printf("business.ai-confidence.usecase: db insert failed (non-fatal) file=%s err=%v", filename, insertErr)
+		return status, body, documentSavedCount, 0, nil
 	}
 	log.Printf("business.ai-confidence.usecase: db insert success file=%s saved_count=%d", filename, len(aiSavedItems))
 
-	return aiStatus, aiBody, documentSavedCount, len(aiSavedItems), nil
+	return status, body, documentSavedCount, len(aiSavedItems), nil
 }
 
 func (u *BusinessUsecase) postMultipartFile(ctx context.Context, targetURL, filename string, content []byte, fields map[string]string, logPrefix string) (int, string, error) {
@@ -275,6 +284,7 @@ type aiConfidenceWebhookArrayItem struct {
 type aiConfidenceTransactionItem struct {
 	ItemName        string  `json:"item_name"`
 	ItemDescription string  `json:"item_description"`
+	COA             float64 `json:"coa"`
 	Quantity        float64 `json:"quantity"`
 	UnitPrice       float64 `json:"unit_price"`
 }
@@ -297,10 +307,10 @@ type aiConfidenceTransactionBusiness struct {
 }
 
 type aiConfidenceBusinessConfidence struct {
-	ConfidenceScore                   float64  `json:"confidence_score"`
-	ConfidenceLevel                   string   `json:"confidence_level"`
-	COARecommendation                 string   `json:"coa_recommendation"`
-	Reasoning                         string   `json:"reasoning"`
+	ConfidenceScore   float64 `json:"confidence_score"`
+	ConfidenceLevel   string  `json:"confidence_level"`
+	COARecommendation string  `json:"coa_recommendation"`
+	Reasoning         string  `json:"reasoning"`
 }
 
 func decodeAIConfidenceEntries(body []byte, defaultDocumentID string) ([]models.JournalEntryRequest, []aiConfidenceTransactionItem, error) {
@@ -629,11 +639,16 @@ func (u *BusinessUsecase) AddJournalEntries(ctx context.Context, entries []model
 						continue
 					}
 
+					itemCOA := ""
+					if item.COA != 0 {
+						itemCOA = fmt.Sprintf("%d", int(item.COA))
+					}
+
 					transactionItem := models.TransactionBusinessItem{
 						TransactionBusinessID: transactionID,
 						ItemName:              itemName,
 						ItemDescription:       strings.TrimSpace(item.ItemDescription),
-						Quantity:              item.Quantity,
+						COA:                   itemCOA,
 						UnitPrice:             item.UnitPrice,
 						CreatedAt:             now,
 					}
@@ -680,6 +695,7 @@ func (u *BusinessUsecase) ListBusinessTransactions(ctx context.Context) ([]model
 		Vendor        string    `gorm:"column:vendor"`
 		Amount        float64   `gorm:"column:amount"`
 		COA           string    `gorm:"column:coa"`
+		ItemCOAs      string    `gorm:"column:item_coas"` // comma-separated unique COAs from items
 		Score         float64   `gorm:"column:score"`
 		Status        string    `gorm:"column:status"`
 	}
@@ -693,6 +709,15 @@ func (u *BusinessUsecase) ListBusinessTransactions(ctx context.Context) ([]model
 			tb.vendor,
 			tb.amount,
 			tb.coa,
+			COALESCE(
+			(
+				SELECT STRING_AGG(DISTINCT tbi.coa::text, ',' ORDER BY tbi.coa::text)
+				FROM transaction_business_items tbi
+				WHERE tbi.transaction_business_id = tb.id
+				  AND tbi.coa IS NOT NULL
+			),
+			''
+		) AS item_coas,
 			COALESCE(bc.confidence_score, tb.score_ai, 0) AS score,
 			tb.status`).
 		Joins("LEFT JOIN business_ai_confidence bc ON bc.transaction_id = tb.id").
@@ -703,6 +728,7 @@ func (u *BusinessUsecase) ListBusinessTransactions(ctx context.Context) ([]model
 
 	items := make([]models.BusinessTransactionListItem, 0, len(rows))
 	for _, row := range rows {
+		uniqueCOAs := splitAndDedup(row.ItemCOAs)
 		items = append(items, models.BusinessTransactionListItem{
 			ID:       row.ID,
 			Date:     row.TransactionAt.Format("02 Jan 2006"),
@@ -711,6 +737,7 @@ func (u *BusinessUsecase) ListBusinessTransactions(ctx context.Context) ([]model
 			Initials: initialsFromVendor(row.Vendor),
 			Amount:   formatMoneyIDR(row.Amount),
 			COA:      row.COA,
+			ItemCOAs: uniqueCOAs,
 			Score:    roundScore(row.Score),
 			Status:   row.Status,
 		})
@@ -777,15 +804,15 @@ func (u *BusinessUsecase) GetBusinessTransactionDetail(ctx context.Context, tran
 	}
 
 	for _, item := range items {
-		qty := item.Quantity
 		unitPrice := item.UnitPrice
 		detail.Items = append(detail.Items, models.BusinessTransactionItemDetail{
 			ID:              item.ID,
 			ItemName:        item.ItemName,
 			ItemDescription: item.ItemDescription,
-			Quantity:        qty,
+			COA:             item.COA,
+			Quantity:        1,
 			UnitPrice:       unitPrice,
-			Total:           qty * unitPrice,
+			Total:           unitPrice,
 		})
 	}
 
@@ -936,4 +963,24 @@ func formatMoneyIDR(amount float64) string {
 
 func roundScore(value float64) float64 {
 	return math.Round(value*100) / 100
+}
+
+// splitAndDedup splits a comma-separated string and returns unique, non-empty values.
+func splitAndDedup(raw string) []string {
+	if strings.TrimSpace(raw) == "" {
+		return nil
+	}
+	seen := make(map[string]struct{})
+	var result []string
+	for _, part := range strings.Split(raw, ",") {
+		v := strings.TrimSpace(part)
+		if v == "" {
+			continue
+		}
+		if _, exists := seen[v]; !exists {
+			seen[v] = struct{}{}
+			result = append(result, v)
+		}
+	}
+	return result
 }

@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS transactions_business (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   document_id uuid REFERENCES documents(id) ON DELETE SET NULL,
   invoice_number varchar NOT NULL,
+  project_name varchar NOT NULL,
+  department varchar NOT NULL,
   transaction_date date NOT NULL,
   vendor varchar NOT NULL,
   amount numeric(18,2) NOT NULL,
@@ -34,12 +36,13 @@ CREATE TABLE IF NOT EXISTS transactions_business (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+drop table if exists transaction_business_items cascade;
 CREATE TABLE IF NOT EXISTS transaction_business_items (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   transaction_business_id uuid NOT NULL REFERENCES transactions_business(id) ON DELETE CASCADE,
   item_name varchar NOT NULL,
   item_description text,
-  quantity numeric(18,2),
+  coa integer,
   unit_price numeric(18,2),
   created_at timestamptz NOT NULL DEFAULT now()
 );
