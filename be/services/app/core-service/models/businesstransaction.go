@@ -47,16 +47,17 @@ type JournalAnalysisBundle struct {
 }
 
 type BusinessTransactionListItem struct {
-	ID       string   `json:"id"`
-	Date     string   `json:"date"`
-	Time     string   `json:"time"`
-	Vendor   string   `json:"vendor"`
-	Initials string   `json:"initials"`
-	Amount   string   `json:"amount"`
-	COA      string   `json:"coa"`
-	ItemCOAs []string `json:"item_coas"`
-	Score    float64  `json:"score"`
-	Status   string   `json:"status"`
+	ID         string   `json:"id"`
+	Date       string   `json:"date"`
+	Time       string   `json:"time"`
+	Vendor     string   `json:"vendor"`
+	Initials   string   `json:"initials"`
+	Amount     string   `json:"amount"`
+	COA        string   `json:"coa"`
+	ItemCOAs   []string `json:"item_coas"`
+	Score      float64  `json:"score"`
+	Status     string   `json:"status"`
+	Department string   `json:"department"`
 }
 
 type BusinessTransactionItemDetail struct {
@@ -88,6 +89,8 @@ type BusinessTransactionDetail struct {
 	Score                float64                         `json:"score"`
 	Items                []BusinessTransactionItemDetail `json:"items"`
 	BusinessAIConfidence *BusinessAIConfidenceDetail     `json:"business_ai_confidence,omitempty"`
+	ProjectName          string                          `json:"project_name"`
+	Department           string                          `json:"department"`
 }
 
 type BusinessTransaction struct {
@@ -101,6 +104,8 @@ type BusinessTransaction struct {
 	ScoreAI         float64   `gorm:"column:score_ai"`
 	Status          string    `gorm:"column:status"`
 	Parse           string    `gorm:"column:parse"`
+	ProjectName     string    `gorm:"column:project_name"`
+	Department      string    `gorm:"column:department"`
 	CreatedAt       time.Time `gorm:"column:created_at"`
 }
 

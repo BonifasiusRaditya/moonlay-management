@@ -29,6 +29,7 @@ type BusinessTransaction = {
   item_coas: string[];
   score: number;
   status: string;
+  department?: string;
 };
 
 type BusinessTransactionItemDetail = {
@@ -60,6 +61,8 @@ type BusinessTransactionDetail = {
   score: number;
   items: BusinessTransactionItemDetail[];
   business_ai_confidence?: BusinessAIConfidenceDetail;
+  project_name?: string;
+  department?: string;
 };
 
 type ImportDocumentResponse = {
@@ -71,14 +74,6 @@ const moneyFormatter = new Intl.NumberFormat('id-ID');
 function formatMoney(value: number) {
   return moneyFormatter.format(value || 0);
 }
-
-const coaOptions = [
-  '6200 - Beban Internet & Komunikasi',
-  '6100 - Beban Listrik & Air',
-  '6300 - Beban Sewa Kantor',
-  '6400 - Beban Gaji & Tunjangan',
-  '2100 - Hutang Usaha',
-];
 
 function StatusBadge({ status }: { status: string }) {
   if (status === 'verified') {
@@ -108,6 +103,29 @@ function CoaBadge({ coa, status }: { coa: string; status: string }) {
       }`}
     >
       {coa}
+    </span>
+  );
+}
+
+function DeptBadge({ dept }: { dept: string }) {
+  let colorClass = 'bg-slate-50 text-slate-700 border-slate-200';
+  const d = dept?.toUpperCase();
+  if (d === 'VMS') {
+    colorClass = 'bg-blue-50 text-blue-700 border-blue-100';
+  } else if (d === 'ENABLEMENT') {
+    colorClass = 'bg-purple-50 text-purple-700 border-purple-100';
+  } else if (d === 'FINANCE') {
+    colorClass = 'bg-emerald-50 text-emerald-700 border-emerald-100';
+  } else if (d === 'HR') {
+    colorClass = 'bg-pink-50 text-pink-700 border-pink-100';
+  } else if (d === 'OPERATIONS') {
+    colorClass = 'bg-amber-50 text-amber-700 border-amber-100';
+  } else if (d === 'MARKETING') {
+    colorClass = 'bg-rose-50 text-rose-700 border-rose-100';
+  }
+  return (
+    <span className={`px-2 py-1 text-[10px] font-bold rounded-lg border ${colorClass}`}>
+      {dept || '-'}
     </span>
   );
 }
@@ -161,30 +179,20 @@ function getConfidenceScore(itemId: string) {
   return 90 + (hash % 10);
 }
 
-function SmartItemCard({ item }: { item: BusinessTransactionItemDetail }) {
+function SmartItemCard({
+  item,
+  coaOptions,
+  departmentOptions,
+}: {
+  item: BusinessTransactionItemDetail;
+  coaOptions: string[];
+  departmentOptions: string[];
+}) {
   const { project, department } = parseItemName(item.item_name);
   const reasoning = getAiReasoning(item.item_name, project);
   const confidenceScore = getConfidenceScore(item.id);
 
-  const itemCoaOptions = [
-    '100027 - Pembelian - Azure (COGS)',
-    '6200 - Beban Internet & Komunikasi',
-    '6100 - Beban Listrik & Air',
-    '6300 - Beban Sewa Kantor',
-    '6400 - Beban Gaji & Tunjangan',
-    '2100 - Hutang Usaha',
-  ];
-
-  const deptOptions = [
-    'VMS',
-    'Enablement',
-    'Finance',
-    'HR',
-    'Operations',
-    'Marketing',
-  ];
-
-  const [selectedCoa, setSelectedCoa] = useState(item.coa || itemCoaOptions[0]);
+  const [selectedCoa, setSelectedCoa] = useState(item.coa);
   const [selectedDept, setSelectedDept] = useState(department);
 
   return (
@@ -237,10 +245,10 @@ function SmartItemCard({ item }: { item: BusinessTransactionItemDetail }) {
               onChange={(e) => setSelectedCoa(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-xs font-bold text-indigo-950/80 hover:border-slate-300 transition-colors focus:outline-none appearance-none pr-8 cursor-pointer"
             >
-              {item.coa && !itemCoaOptions.includes(item.coa) && (
+              {item.coa && !coaOptions.includes(item.coa) && (
                 <option value={item.coa}>{item.coa}</option>
               )}
-              {itemCoaOptions.map((opt) => (
+              {coaOptions.map((opt) => (
                 <option key={opt} value={opt}>
                   {opt}
                 </option>
@@ -262,7 +270,7 @@ function SmartItemCard({ item }: { item: BusinessTransactionItemDetail }) {
               onChange={(e) => setSelectedDept(e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-xs font-bold text-indigo-950/80 hover:border-slate-300 transition-colors focus:outline-none appearance-none pr-8 cursor-pointer"
             >
-              {deptOptions.map((opt) => (
+              {departmentOptions.map((opt) => (
                 <option key={opt} value={opt}>
                   {opt}
                 </option>
@@ -283,20 +291,24 @@ function DetailDrawer({
   onClose,
   detail,
   isLoading,
+  coaOptions,
+  departmentOptions,
 }: {
   open: boolean;
   onClose: () => void;
   detail: BusinessTransactionDetail | null;
   isLoading: boolean;
+  coaOptions: string[];
+  departmentOptions: string[];
 }) {
-  const [selectedCoa, setSelectedCoa] = useState(coaOptions[0]);
+  const [selectedCoa, setSelectedCoa] = useState(coaOptions[0] || '');
   const [drawerWidth, setDrawerWidth] = useState(640);
   const resizeStateRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
   useEffect(() => {
-    const initialCoa = detail?.business_ai_confidence?.coa_recommendation || detail?.coa || coaOptions[0];
+    const initialCoa = detail?.business_ai_confidence?.coa_recommendation || detail?.coa || coaOptions[0] || '';
     setSelectedCoa(initialCoa);
-  }, [detail?.id, detail?.coa, detail?.business_ai_confidence?.coa_recommendation]);
+  }, [detail?.id, detail?.coa, detail?.business_ai_confidence?.coa_recommendation, coaOptions]);
 
   useEffect(() => {
     if (!open) {
@@ -374,7 +386,6 @@ function DetailDrawer({
           <div className="flex justify-between items-end gap-4">
             <div className="min-w-0">
               <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight truncate">{detail?.vendor || (isLoading ? 'Memuat detail...' : 'Transaksi belum dipilih')}</h3>
-              <p className="text-xs text-slate-500 font-medium mt-1 truncate">Ref: {detail?.invoice_number || '-'}</p>
             </div>
             <div className="text-right">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Transaksi</p>
@@ -392,26 +403,21 @@ function DetailDrawer({
             </div>
           ) : detail ? (
             <>
-              <section className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tanggal Transaksi</p>
-                  <p className="text-sm font-bold text-slate-900">{detail.date}</p>
-                  <p className="text-[10px] text-slate-500 font-medium">Waktu: {detail.time} WIB</p>
+            <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Confidence Detail</h4>
+                  <span className="text-[10px] font-bold text-emerald-600 uppercase">{confidence?.confidence_level || 'Tidak ada data confidence'}</span>
                 </div>
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">COA</p>
-                  <p className="text-sm font-bold text-slate-900">{detail.coa || '-'}</p>
-                  <p className="text-[10px] text-slate-500 font-medium">Score: {detail.score}%</p>
-                </div>
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Vendor</p>
-                  <p className="text-sm font-bold text-slate-900 truncate">{detail.vendor}</p>
-                  <p className="text-[10px] text-slate-500 font-medium">Status: {detail.status}</p>
-                </div>
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Invoice Number</p>
-                  <p className="text-sm font-bold text-slate-900 truncate">{detail.invoice_number || '-'}</p>
-                  <p className="text-[10px] text-slate-500 font-medium">ID: {detail.id}</p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Confidence Score</p>
+                    <p className="text-sm font-bold text-slate-900">{typeof confidence?.confidence_score === 'number' ? `${confidence.confidence_score}%` : '-'}</p>
+                  </div>
+                  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Confidence Level</p>
+                    <p className="text-sm font-bold text-slate-900">{confidence?.confidence_level || '-'}</p>
+                  </div>
                 </div>
               </section>
 
@@ -429,7 +435,12 @@ function DetailDrawer({
                     </div>
                   ) : (
                     detail.items.map((item) => (
-                      <SmartItemCard key={item.id} item={item} />
+                      <SmartItemCard
+                        key={item.id}
+                        item={item}
+                        coaOptions={coaOptions}
+                        departmentOptions={departmentOptions}
+                      />
                     ))
                   )}
                 </div>
@@ -446,7 +457,6 @@ function DetailDrawer({
                       <tr>
                         <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-tighter">Item</th>
                         <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-tighter">Deskripsi</th>
-                        <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-tighter text-right">Qty</th>
                         <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-tighter text-right">Debit</th>
                         <th className="px-4 py-3 font-bold text-slate-500 uppercase tracking-tighter text-right">Kredit</th>
                       </tr>
@@ -461,7 +471,6 @@ function DetailDrawer({
                           <tr key={item.id}>
                             <td className="px-4 py-3 font-semibold text-slate-900">{item.item_name}</td>
                             <td className="px-4 py-3 text-slate-500">{item.item_description || '-'}</td>
-                            <td className="px-4 py-3 text-right font-medium">{item.quantity}</td>
                             <td className="px-4 py-3 text-right font-bold">Rp {formatMoney(item.total)}</td>
                           </tr>
                         ))
@@ -469,7 +478,7 @@ function DetailDrawer({
                     </tbody>
                     <tfoot className="bg-slate-50/50 border-t border-slate-100">
                       <tr>
-                        <td className="px-4 py-3 font-bold text-slate-500" colSpan={4}>Total Invoice</td>
+                        <td className="px-4 py-3 font-bold text-slate-500" colSpan={3}>210101 - Operational Payable</td>
                         <td className="px-4 py-3 text-right font-black text-slate-900">Rp {formatMoney(detail.amount)}</td>
                       </tr>
                     </tfoot>
@@ -477,27 +486,6 @@ function DetailDrawer({
                 </div>
               </section>
 
-              <section className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Confidence Detail</h4>
-                  <span className="text-[10px] font-bold text-emerald-600 uppercase">{confidence?.confidence_level || 'Tidak ada data confidence'}</span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Confidence Score</p>
-                    <p className="text-sm font-bold text-slate-900">{typeof confidence?.confidence_score === 'number' ? `${confidence.confidence_score}%` : '-'}</p>
-                  </div>
-                  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Confidence Level</p>
-                    <p className="text-sm font-bold text-slate-900">{confidence?.confidence_level || '-'}</p>
-                  </div>
-                  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">COA Recommendation</p>
-                    <p className="text-sm font-bold text-indigo-700">{confidence?.coa_recommendation || '-'}</p>
-                  </div>
-                </div>
-              </section>
 
               <section>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">Ubah Klasifikasi Manual</label>
@@ -565,6 +553,7 @@ function TransaksiBisnisPage() {
   const [vendorFilter, setVendorFilter] = useState('');
   const [coaFilterSelected, setCoaFilterSelected] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -635,6 +624,7 @@ function TransaksiBisnisPage() {
     setVendorFilter('');
     setCoaFilterSelected('');
     setStatusFilter('');
+    setDepartmentFilter('');
   };
 
   const handleUploadDocument = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -666,6 +656,7 @@ function TransaksiBisnisPage() {
   const vendorOptions = Array.from(new Set(transactions.map((t) => t.vendor))).filter(Boolean).sort();
   const coaOptionsFromData = Array.from(new Set(transactions.map((t) => t.coa))).filter(Boolean).sort();
   const statusOptionsFromData = Array.from(new Set(transactions.map((t) => t.status))).filter(Boolean).sort();
+  const departmentOptions = Array.from(new Set(transactions.map((t) => t.department))).filter((d): d is string => !!d).sort();
 
   const filtered = transactions.filter((t) => {
     const q = search.toLowerCase();
@@ -691,8 +682,9 @@ function TransaksiBisnisPage() {
     const matchVendor = !vendorFilter || t.vendor === vendorFilter;
     const matchCoa = !coaFilterSelected || t.coa === coaFilterSelected;
     const matchStatus = !statusFilter || t.status === statusFilter;
+    const matchDepartment = !departmentFilter || t.department === departmentFilter;
 
-    return matchSearch && matchTab && matchDate && matchVendor && matchCoa && matchStatus;
+    return matchSearch && matchTab && matchDate && matchVendor && matchCoa && matchStatus && matchDepartment;
   });
 
   return (
@@ -750,20 +742,24 @@ function TransaksiBisnisPage() {
                           </div>
 
                           <div>
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">COA</label>
-                            <select value={coaFilterSelected} onChange={(e) => setCoaFilterSelected(e.target.value)} className="mt-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm w-full">
-                              <option value="">Semua COA</option>
-                              {coaOptionsFromData.length > 0 ? (
-                                coaOptionsFromData.map((c) => (
-                                  <option key={c} value={c}>{c}</option>
-                                ))
-                              ) : (
-                                coaOptions.map((c) => (
-                                  <option key={c} value={c}>{c}</option>
-                                ))
-                              )}
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Departemen</label>
+                            <select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} className="mt-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm w-full">
+                              <option value="">Semua Departemen</option>
+                              {departmentOptions.map((d) => (
+                                <option key={d} value={d}>{d}</option>
+                              ))}
                             </select>
                           </div>
+
+                          <div>
+                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">COA</label>
+                             <select value={coaFilterSelected} onChange={(e) => setCoaFilterSelected(e.target.value)} className="mt-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm w-full">
+                               <option value="">Semua COA</option>
+                               {coaOptionsFromData.map((c) => (
+                                 <option key={c} value={c}>{c}</option>
+                               ))}
+                             </select>
+                           </div>
 
                           <div>
                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</label>
@@ -800,7 +796,7 @@ function TransaksiBisnisPage() {
                   <thead>
                     <tr className="bg-slate-50 sticky top-0 z-10">
                       <th className="w-12 py-4"></th>
-                      {['Tanggal', 'Vendor', 'Jumlah', 'COA', 'Score', 'Status'].map((h) => (
+                      {['Tanggal', 'Vendor', 'Departemen', 'Jumlah', 'COA', 'Score', 'Status'].map((h) => (
                         <th key={h} className="px-4 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{h}</th>
                       ))}
                     </tr>
@@ -808,7 +804,7 @@ function TransaksiBisnisPage() {
                   <tbody className="divide-y divide-slate-100">
                     {filtered.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                        <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
                           <Cloud size={32} className="mx-auto mb-2" />
                           <p className="font-bold text-sm">{isLoadingTransactions ? 'Memuat transaksi...' : 'Tidak ada transaksi yang ditemukan'}</p>
                           <p className="text-[10px] mt-1">{isLoadingTransactions ? 'Menunggu data dari backend.' : 'Coba sesuaikan kata kunci pencarian atau filter yang digunakan.'}</p>
@@ -820,6 +816,7 @@ function TransaksiBisnisPage() {
                           <td className="px-6 py-4"><input type="checkbox" className="rounded border-slate-300 w-4 h-4" onClick={(e) => e.stopPropagation()} /></td>
                           <td className="px-4 py-4"><p className="font-bold text-indigo-800 text-sm">{t.date}</p><p className="text-[10px] text-slate-400 font-medium">{t.time}</p></td>
                           <td className="px-4 py-4"><div className="flex items-center gap-2"><div className="w-7 h-7 rounded bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-600 flex-shrink-0">{t.initials}</div><p className="font-bold text-slate-900 text-sm truncate">{t.vendor}</p></div></td>
+                          <td className="px-4 py-4"><DeptBadge dept={t.department || '-'} /></td>
                           <td className="px-4 py-4 text-right"><p className="font-bold text-slate-900 text-sm">{t.amount}</p><p className="text-[9px] text-slate-400 uppercase font-bold">IDR</p></td>
                           <td className="px-4 py-4">
                             <div className="flex flex-wrap items-center gap-1">
@@ -853,6 +850,8 @@ function TransaksiBisnisPage() {
           onClose={handleCloseDrawer}
           detail={selectedTransactionDetail}
           isLoading={isDetailLoading}
+          coaOptions={coaOptionsFromData}
+          departmentOptions={departmentOptions}
         />
 
         {/* Masuk ke notification */}

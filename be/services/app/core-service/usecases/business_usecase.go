@@ -597,6 +597,12 @@ func (u *BusinessUsecase) AddJournalEntries(ctx context.Context, entries []model
 			statusValue := deriveJournalStatus(entry)
 			documentID := nullableStringPtr(entry.DocumentID)
 
+			projectName := "General"
+			departmentValue := "VMS"
+			if len(transactionItems) > 0 {
+				projectName, departmentValue = parseItemName(transactionItems[0].ItemName)
+			}
+
 			transaction := models.BusinessTransaction{
 				DocumentID:      documentID,
 				InvoiceNumber:   invoiceNumber,
@@ -607,6 +613,8 @@ func (u *BusinessUsecase) AddJournalEntries(ctx context.Context, entries []model
 				ScoreAI:         entry.ConfidenceScore,
 				Status:          statusValue,
 				Parse:           strings.TrimSpace(entry.Parse),
+				ProjectName:     projectName,
+				Department:      departmentValue,
 				CreatedAt:       now,
 			}
 
@@ -661,15 +669,16 @@ func (u *BusinessUsecase) AddJournalEntries(ctx context.Context, entries []model
 			}
 
 			results = append(results, models.BusinessTransactionListItem{
-				ID:       transactionID,
-				Date:     transactionDate.Format("02 Jan 2006"),
-				Time:     now.Format("15:04"),
-				Vendor:   vendor,
-				Initials: initialsFromVendor(entry.Vendor),
-				Amount:   formatMoneyIDR(entry.Amount),
-				COA:      coaValue,
-				Score:    roundScore(entry.ConfidenceScore),
-				Status:   statusValue,
+				ID:         transactionID,
+				Date:       transactionDate.Format("02 Jan 2006"),
+				Time:       now.Format("15:04"),
+				Vendor:     vendor,
+				Initials:   initialsFromVendor(entry.Vendor),
+				Amount:     formatMoneyIDR(entry.Amount),
+				COA:        coaValue,
+				Score:      roundScore(entry.ConfidenceScore),
+				Status:     statusValue,
+				Department: departmentValue,
 			})
 		}
 		return nil
@@ -698,6 +707,7 @@ func (u *BusinessUsecase) ListBusinessTransactions(ctx context.Context) ([]model
 		ItemCOAs      string    `gorm:"column:item_coas"` // comma-separated unique COAs from items
 		Score         float64   `gorm:"column:score"`
 		Status        string    `gorm:"column:status"`
+		Department    string    `gorm:"column:department"`
 	}
 
 	var rows []row
@@ -709,6 +719,7 @@ func (u *BusinessUsecase) ListBusinessTransactions(ctx context.Context) ([]model
 			tb.vendor,
 			tb.amount,
 			tb.coa,
+			tb.department,
 			COALESCE(
 			(
 				SELECT STRING_AGG(DISTINCT tbi.coa::text, ',' ORDER BY tbi.coa::text)
@@ -730,16 +741,17 @@ func (u *BusinessUsecase) ListBusinessTransactions(ctx context.Context) ([]model
 	for _, row := range rows {
 		uniqueCOAs := splitAndDedup(row.ItemCOAs)
 		items = append(items, models.BusinessTransactionListItem{
-			ID:       row.ID,
-			Date:     row.TransactionAt.Format("02 Jan 2006"),
-			Time:     row.CreatedAt.Format("15:04"),
-			Vendor:   row.Vendor,
-			Initials: initialsFromVendor(row.Vendor),
-			Amount:   formatMoneyIDR(row.Amount),
-			COA:      row.COA,
-			ItemCOAs: uniqueCOAs,
-			Score:    roundScore(row.Score),
-			Status:   row.Status,
+			ID:         row.ID,
+			Date:       row.TransactionAt.Format("02 Jan 2006"),
+			Time:       row.CreatedAt.Format("15:04"),
+			Vendor:     row.Vendor,
+			Initials:   initialsFromVendor(row.Vendor),
+			Amount:     formatMoneyIDR(row.Amount),
+			COA:        row.COA,
+			ItemCOAs:   uniqueCOAs,
+			Score:      roundScore(row.Score),
+			Status:     row.Status,
+			Department: row.Department,
 		})
 	}
 
@@ -792,6 +804,8 @@ func (u *BusinessUsecase) GetBusinessTransactionDetail(ctx context.Context, tran
 		Status:        transaction.Status,
 		Score:         roundScore(transaction.ScoreAI),
 		Items:         make([]models.BusinessTransactionItemDetail, 0, len(items)),
+		ProjectName:   transaction.ProjectName,
+		Department:    transaction.Department,
 	}
 
 	if !errors.Is(confidenceResult.Error, gorm.ErrRecordNotFound) {
@@ -983,4 +997,33 @@ func splitAndDedup(raw string) []string {
 		}
 	}
 	return result
+}
+
+func parseItemName(itemName string) (projectName string, department string) {
+	projectName = itemName
+	department = "VMS"
+
+	if strings.Contains(itemName, " - ") {
+		parts := strings.Split(itemName, " - ")
+		deptPart := strings.TrimSpace(parts[0])
+		projectName = strings.TrimSpace(strings.Join(parts[1:], " - "))
+
+		if strings.ToUpper(deptPart) == "VMS" {
+			department = "VMS"
+		} else if strings.ToUpper(deptPart) == "ENABLEMENT" {
+			department = "Enablement"
+		} else {
+			if len(deptPart) > 0 {
+				department = strings.ToUpper(deptPart[:1]) + strings.ToLower(deptPart[1:])
+			}
+		}
+	} else {
+		lowerName := strings.ToLower(itemName)
+		if strings.Contains(lowerName, "vms") {
+			department = "VMS"
+		} else if strings.Contains(lowerName, "enablement") || strings.Contains(lowerName, "office") || strings.Contains(lowerName, "management") {
+			department = "Enablement"
+		}
+	}
+	return projectName, department
 }
